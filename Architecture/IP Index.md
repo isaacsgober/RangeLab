@@ -1,7 +1,32 @@
-| Device            | Address         |
-| ----------------- | --------------- |
-| [[Precision7730]] | [[10.10.10.1]]  |
-| [[esxi01]]        | [[10.10.10.10]] |
-| [[vcenter01]]     | [[10.10.10.15]] |
-| [[dnsmasqhost]]   | [[10.10.10.2]]  |
-|                   |                 |
+# IP Index
+
+VMnet10 — `10.10.10.0/24`, host-only, static addressing, no DHCP.
+Allocation policy: [[ADR-0001 - IP addressing plan]].
+
+## Allocation ranges
+
+| Range       | Purpose                                   |
+| ----------- | ----------------------------------------- |
+| .1 – .9     | Network infrastructure                    |
+| .10 – .19   | Hypervisors and management plane          |
+| .20 – .99   | Linux VMs and workloads                   |
+| .100 – .199 | Windows VMs and workloads *(reserved)*    |
+| .200 – .254 | Transient hosts, range targets, reserved  |
+
+## Assignments
+
+| Device             | Address         |
+| ------------------ | --------------- |
+|                    |                 |
+| [[dnsmasqhost]]    | [[10.10.10.2]]  |
+| [[Precision7730]] | [[10.10.10.3]]  |
+| [[esxi01]]         | [[10.10.10.10]] |
+| [[vcenter01]]      | [[10.10.10.15]] |
+
+## Planned
+
+| Device        | Address         | Phase |
+| ------------- | --------------- | ----- |
+| [[ansible01]] | [[10.10.10.20]] | 2     |
+| [[rocky01]]   | [[10.10.10.21]] | 2     |
+| Router        | 10.10.10.1      |       |

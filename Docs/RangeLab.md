@@ -19,7 +19,7 @@ The goal is to progress through each stage while continuously expanding the same
 
 - [x] Build a lab host and install ESXi
 	- [x] Deploy vCenter Server
-- [x] Add a **[Proxmox VE](https://www.proxmox.com/)** host
+- [ ] Add a **[Proxmox VE](https://www.proxmox.com/)** host
 - [ ] Deploy a [VyOS](https://vyos.io/) router
 	- [ ] Segment both labs into VLANs (vSphere port group and Proxmox Linux bridge)
 

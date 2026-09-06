@@ -1,6 +1,7 @@
 # VMnet10
 
 ## Purpose
+
 Primary host-only network for Range Lab.
 
 Provides isolated communication between host and virtual infrastructure.
@@ -30,7 +31,7 @@ Host Adapter: 10.10.10.1
 
 ## Members
 
-- [[Precision 7730]]
+- [[Precision7730]]
 - [[dnsmasqhost]]
 - [[esxi01]]
 - [[vcenter01]]
@@ -40,7 +41,7 @@ Host Adapter: 10.10.10.1
 
 ## Notes
 
-This network is isolated from the physical LAN of [[Precision 7730]].
+This network is isolated from the physical LAN of [[Precision7730]].
 
 Servers within the Range Lab use static IP addresses at this time.
 
