@@ -15,7 +15,7 @@ Do not add a technology to the resume merely because it was installed. Add it af
 - [x] Record the ESXi host version, vCenter version, VM names, IP addresses, virtual switches, port groups, and VLANs in use.
 - [x] Draw a simple logical network diagram showing the ESXi host, vCenter, Rocky Linux DNS VM, router/gateway, management network, and guest systems.
 - [x] Document how vCenter depends on DNS and which forward and reverse records support the environment.
-- [ ] Save screenshots or command output showing successful forward lookup, reverse lookup, and vCenter access by hostname.
+- [x] Save screenshots or command output showing successful forward lookup, reverse lookup, and vCenter access by hostname.
 - [x] Create a short recovery note explaining how to restore lab access if DNS is unavailable.
 - [x] Remove passwords, private keys, tokens, public IP addresses, and other secrets from anything intended for a public repository.
 
