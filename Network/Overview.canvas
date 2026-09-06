@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"c4e96b0f575af8a9","type":"file","file":"Devices/Precision7730.md","x":-600,"y":-2,"width":240,"height":50},
+		{"id":"d2926c27e7cb452a","type":"file","file":"Devices/dnsmasqhost.md","x":-320,"y":-2,"width":234,"height":50},
+		{"id":"fd18683ffbf709a4","type":"file","file":"Devices/esxi01.md","x":3,"y":-2,"width":154,"height":50},
+		{"id":"251e0cea6ff5cfc7","type":"file","file":"Network/VMnet10.md","x":-292,"y":-240,"width":179,"height":50},
+		{"id":"6064ad7a64334073","type":"file","file":"Devices/vcenter01.md","x":-18,"y":160,"width":197,"height":50}
+	],
+	"edges":[
+		{"id":"4fe33224459e0258","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"c4e96b0f575af8a9","toSide":"top"},
+		{"id":"31e76be80d5177f9","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"fd18683ffbf709a4","toSide":"top"},
+		{"id":"72c3185974b43299","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"d2926c27e7cb452a","toSide":"top"},
+		{"id":"a094574323644a00","fromNode":"fd18683ffbf709a4","fromSide":"bottom","toNode":"6064ad7a64334073","toSide":"top"}
+	]
+}
