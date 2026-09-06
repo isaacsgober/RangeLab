@@ -8,6 +8,10 @@
 
 [[Server]]
 
+## IP of Host
+
+`0.0.0.0`
+
 ---
 
 ## Ports

@@ -18,13 +18,13 @@ Planned | Running | Offline | Retired
 
 ## Hostname
 
+## Domain
+
+## FQDN
+
 ---
 
 ## IP Address
-
----
-
-## Domain
 
 ---
 
@@ -37,6 +37,12 @@ Planned | Running | Offline | Retired
 ## Network
 
 [[VMnet10]]
+
+---
+
+## Management
+
+Web Interface: / SSH:
 
 ---
 

@@ -9,7 +9,6 @@
 Host-only | NAT | Bridged | VLAN
 
 ---
-
 ## IPv4 Network
 
 Subnet:
@@ -21,6 +20,8 @@ Gateway:
 DNS:
 
 DHCP:
+
+Host Adapter:
 
 ---
 

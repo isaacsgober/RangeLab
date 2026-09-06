@@ -6,13 +6,38 @@
 
 ## Status
 
+Planned | Running | Offline | Retired
+
+---
+
+## Operating System
+
+### Version
+
+---
+
+## Hostname
+
+## Domain
+
+## FQDN
+
+---
+
+## Hosted On
+
+---
+
+## Network
+
+IPv4:
+Mask:
+Gateway:
+DNS:
+
 ---
 
 ## Management
-
-Hostname:
-
-IPv4:
 
 Web Interface:
 
@@ -24,17 +49,15 @@ Web Interface:
 
 ### Memory
 
-### Storage
-
 ---
 
-## Datastores
+## Storage
 
 -
 
 ---
 
-## Networks
+## Datastores
 
 -
 
