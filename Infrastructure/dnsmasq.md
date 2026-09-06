@@ -55,7 +55,7 @@ To provide DNS service to machines in Range Lab
 ## Dependencies
 
 [[dnsmasqhost]]
-
+	interface ens160
 ---
 
 ## Notes
