@@ -48,7 +48,7 @@ esxi01.rangelab.local
 
 IPv4: [[10.10.10.10]]
 Mask: 255.255.255.0
-Gateway: [[10.10.10.1]] (To be configured.)
+Gateway: [[10.10.10.1]] (To be updated.)
 DNS: [[10.10.10.2]]
 
 ---
