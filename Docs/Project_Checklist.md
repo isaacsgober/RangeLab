@@ -12,25 +12,25 @@ Do not add a technology to the resume merely because it was installed. Add it af
 
 ## Phase 0 — Preserve and document the current baseline
 
-- [ ] Record the ESXi host version, vCenter version, VM names, IP addresses, virtual switches, port groups, and VLANs in use.
-- [ ] Draw a simple logical network diagram showing the ESXi host, vCenter, Rocky Linux DNS VM, router/gateway, management network, and guest systems.
-- [ ] Document how vCenter depends on DNS and which forward and reverse records support the environment.
+- [x] Record the ESXi host version, vCenter version, VM names, IP addresses, virtual switches, port groups, and VLANs in use.
+- [x] Draw a simple logical network diagram showing the ESXi host, vCenter, Rocky Linux DNS VM, router/gateway, management network, and guest systems.
+- [x] Document how vCenter depends on DNS and which forward and reverse records support the environment.
 - [ ] Save screenshots or command output showing successful forward lookup, reverse lookup, gateway connectivity, and vCenter access by hostname.
-- [ ] Create a short recovery note explaining how to restore lab access if DNS is unavailable.
-- [ ] Remove passwords, private keys, tokens, public IP addresses, and other secrets from anything intended for a public repository.
+- [x] Create a short recovery note explaining how to restore lab access if DNS is unavailable.
+- [x] Remove passwords, private keys, tokens, public IP addresses, and other secrets from anything intended for a public repository.
 
 **Completion evidence:** A current diagram, sanitized configuration notes, successful DNS test results, and a brief recovery procedure.
 
 ## Phase 1 — Build a Git-backed documentation repository
 
-- [ ] Create a repository named something like `virtualized-infrastructure-homelab`.
-- [ ] Add a `README.md` describing the project goal, architecture, hardware/software used, and current status.
-- [ ] Add directories for `docs/`, `diagrams/`, `ansible/`, and `scripts/`.
-- [ ] Add the sanitized topology diagram and baseline documentation.
-- [ ] Add a `.gitignore` that excludes private keys, credentials, environment files, logs, and temporary files.
+- [x] Create a repository named something like `virtualized-infrastructure-homelab`.
+- [x] Add a `README.md` describing the project goal, architecture, hardware/software used, and current status.
+- [x] Add directories for `docs/`, `diagrams/`, `ansible/`, and `scripts/`.
+- [x] Add the sanitized topology diagram and baseline documentation.
+- [x] Add a `.gitignore` that excludes private keys, credentials, environment files, logs, and temporary files.
 - [ ] Practice `clone`, `status`, `add`, `commit`, `push`, `pull`, branch creation, merge, and viewing commit history.
-- [ ] Make several small, descriptive commits instead of one large initial upload.
-- [ ] Verify that a fresh clone contains no secrets and that its documentation renders correctly.
+- [x] Make several small, descriptive commits instead of one large initial upload.
+- [x] Verify that a fresh clone contains no secrets and that its documentation renders correctly.
 
 **Completion evidence:** A readable repository with meaningful commit history and no sensitive information.
 
