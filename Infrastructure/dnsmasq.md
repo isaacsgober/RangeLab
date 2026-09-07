@@ -37,7 +37,7 @@ To provide DNS service to machines in Range Lab
 | `esxi01.rangelab.local`      | `10.10.10.10` |
 | `vcenter01.rangelab.local`   | `10.10.10.15` |
 | `ansible01.rangelab.local`   | `10.10.10.20` |
-| `rocky01.rangelab.local`     | `10.10.10.21` |
+| `managed01.rangelab.local`   | `10.10.10.21` |
 
 **Reverse DNS (PTR) records:**
 
@@ -48,7 +48,7 @@ To provide DNS service to machines in Range Lab
 | `10.10.10.10` | `esxi01.rangelab.local`      |
 | `10.10.10.15` | `vcenter01.rangelab.local`   |
 | `10.10.10.20` | `ansible01.rangelab.local`   |
-| `10.10.10.21` | `rocky01.rangelab.local`     |
+| `10.10.10.21` | `managed01.rangelab.local`   |
 
 **Configuration file:**
 
