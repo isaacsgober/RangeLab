@@ -1,4 +1,7 @@
 # ADR-0001 - IP addressing plan for VMnet10
+## Revisions:
+2026-09-06:
+	 Changed the planned name of IP 10.10.10.21 from rocky01 to managed01; naming should be role-based, as future managed nodes may run other OS's.
 
 ## Status
 
@@ -21,13 +24,13 @@ glance.
 
 Divide `10.10.10.0/24` into function-based bands:
 
-| Range       | Purpose                                   | Assigned                                  |
-| ----------- | ----------------------------------------- | ----------------------------------------- |
-| .1 – .9     | Network infrastructure                    | `.1` gateway / host adapter, `.2` dnsmasqhost |
-| .10 – .19   | Hypervisors and management plane          | `.10` esxi01, `.15` vcenter01             |
-| .20 – .99   | Linux VMs and workloads                   | `.20` ansible01, `.21` rocky01 *(planned)* |
-| .100 – .199 | Windows VMs and workloads *(reserved)*    | —                                         |
-| .200 – .254 | Transient hosts, range targets, reserved  | —                                         |
+| Range       | Purpose                                  | Assigned                                                     |
+| ----------- | ---------------------------------------- | ------------------------------------------------------------ |
+| .1 – .9     | Network infrastructure                   | `.1` gateway / host adapter, `.2` dnsmasqhost                |
+| .10 – .19   | Hypervisors and management plane         | `.10` esxi01, `.15` vcenter01                                |
+| .20 – .99   | Linux VMs and workloads                  | `.20` ansible01, `.21` managed01 [see revisions](#revisions) |
+| .100 – .199 | Windows VMs and workloads *(reserved)*   | —                                                            |
+| .200 – .254 | Transient hosts, range targets, reserved | —                                                            |
 
 Within a band, assign sequentially from the low end. `.0` and `.255` are reserved by the
 subnet.
