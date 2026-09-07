@@ -1,5 +1,12 @@
 # ADR-0002 - Dedicated service account for Ansible automation
 
+## Revisions:
+
+2026-09-07:
+	Granted the `ansible` account passwordless sudo (`NOPASSWD: ALL`) via
+	`/etc/sudoers.d/ansible` on all nodes, so playbook runs need no interactive
+	become password. Tradeoff recorded under Consequences.
+
 ## Status
 
 Accepted
@@ -59,8 +66,13 @@ Disadvantages
 
 - An additional account exists on every host, which is one more thing to create,
   document, and eventually harden.
-- The account holds sudo rights, so its SSH key becomes a high-value credential and
-  must be kept out of the repository.
+- The account holds passwordless sudo (see Revisions), so possession of its SSH
+  private key is equivalent to unrestricted root on every node. This is the standard
+  posture for an automation service account and is acceptable here because the key
+  never leaves `ansible01` and the lab is isolated, but it concentrates risk in one
+  credential and must be kept out of the repository. Rejected alternatives:
+  `--ask-become-pass` (breaks unattended) and vaulting the become password
+  (adds ceremony without improving security appreciably).
 
 ---
 
