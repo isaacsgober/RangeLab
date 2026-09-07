@@ -40,16 +40,16 @@ See [[Phase 0 Screenshots]].
 - [x] Deploy at least one separate Rocky Linux VM as a managed node.
 - [x] Assign documented hostnames and IP addresses using the lab's existing addressing plan.
 - [x] Add forward and reverse DNS records for the new systems.
-- [ ] Create a non-root administrative account and configure `sudo` appropriately.
-- [ ] Configure SSH key-based authentication from the control node to the managed node.
-- [ ] Confirm hostname resolution, ICMP connectivity, SSH access, time synchronization, and package repository access.
+- [x] Create a non-root administrative account and configure `sudo` appropriately.
+- [x] Configure SSH key-based authentication from the control node to the managed node.
+- [x] Confirm hostname resolution, ICMP connectivity, SSH access, time synchronization, and package repository access.
 - [x] Record a troubleshooting log for at least one issue encountered and resolved.
 
 **Completion evidence:** The control node can resolve and connect to the managed node by hostname using SSH keys.
 
 ## Phase 3 — Configure the managed node with Ansible
 
-- [ ] Install Ansible on the control node.
+- [x] Install Ansible on the control node.
 - [ ] Create a YAML inventory using DNS hostnames rather than hard-coded ad hoc commands.
 - [ ] Run `ansible all -m ping` successfully against the managed node.
 - [ ] Write a playbook that updates packages and installs a small set of utilities.
