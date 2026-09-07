@@ -107,16 +107,7 @@ By the end of the Range Lab, the environment should include:
 - Everything in Git, with CI running `yamllint`, [`ansible-lint`](https://ansible.readthedocs.io/projects/lint/), and a smoke test
 - A `README` that explains the design decisions, not just the run commands
 - Full teardown and rebuild from nothing, unattended, proven more than once
-
 ---
-
-# Learning Journal
-
-- [[2026-08-03]]
-- [[2026-08-04]]
-
----
-
 # Notes
 
 This vault documents the complete lifecycle of the Range Lab, including infrastructure, configuration, automation, troubleshooting, and design decisions. The objective is to build a functioning lab, and to understand, reproduce, and explain every component of the environment and range infrastructure. 
