@@ -77,24 +77,26 @@ https://10.10.10.10
 Disk 1
 - 142 GB
 - ESXi system
-- [[datastore1]]
+- [[datastore01-01]]
 
 Disk 2
 - 224 GB
-- [[datastore2]]
+- [[datastore01-02]]
 
 ---
 
 ## Datastores
 
-- [[datastore1]] (13.75 GB)
-- [[datastore2]] (224 GB)
+- [[datastore01-01]] (13.75 GB)
+- [[datastore01-02]] (224 GB)
 
 ---
 
 ## Hosted Virtual Machines
 
 - [[vcenter01]]
+- [[ansible01]]
+- [[managed01]]
 
 ---
 
@@ -106,6 +108,8 @@ Disk 2
 
 - [[Precision7730]]
 - [[vcenter01]]
+- [[ansible01]]
+- [[managed01]]
 - [[VMnet10]]
-- [[datastore1]]
-- [[datastore2]]
+- [[datastore01-01]]
+- [[datastore01-02]]

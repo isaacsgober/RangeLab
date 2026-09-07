@@ -11,6 +11,10 @@ graph TD
     DNS -.-> VMNet
 
     ESXi --> VC["vcenter01"]
+    ESXi --> ANS["ansible01"]
+    ESXi --> MAN["managed01"]
     VC -.-> VMNet
+    ANS -.-> VMNet
+    MAN -.-> VMNet
 
 ```
