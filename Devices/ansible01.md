@@ -72,7 +72,7 @@ SSH: `<user>@ansible01.rangelab.local`
 
 Package installation is handled through a local repository built from the Rocky 10.2 DVD ISO, mounted at `/mnt/rocky-iso`. The `baseos`, `appstream`, and `extras` repos are disabled; `local-baseos` and `local-appstream` are defined in `/etc/yum.repos.d/local-iso.repo`.
 
-The **ISO mount** is **not persistent** — it must be remounted after a reboot, or added to `/etc/fstab`.
+The ISO is mounted read-only at `/mnt/rocky-iso` at boot via `/etc/fstab` (`/dev/sr0`, `iso9660`, `ro,nofail`); `nofail` lets the node boot even if the ISO is detached from the virtual drive. See [ADR-0003](../Architecture/Decision%20Records/ADR-0003%20-%20Local%20ISO%20package%20repository.md).
 
 Hosts the `ansible` service account defined in [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account). 
 
