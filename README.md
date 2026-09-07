@@ -1,9 +1,11 @@
 # RangeLab
 
 Virtualized infrastructure homelab — built and documented as the work is actually done.
-Nothing here (or on a resume) is claimed until it's been used, tested, broken, fixed, and
-written up.
+Nothing here is claimed until it's been used, tested, broken, fixed, and written up.
 
+**Note:**
+This repository is an Obsidian vault, and, as such, is best navigated using Obsidian.
+`[[double-bracket]]` links are internal links to other notes, used by Obsidian, and will render as plain text on GitHub.
 ## Two documents drive this project
 
 - **[`Docs/Project_Checklist.md`](Docs/Project_Checklist.md)** — the current, active
