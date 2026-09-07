@@ -36,14 +36,14 @@ See [[Phase 0 Screenshots]].
 
 ## Phase 2 — Add Linux systems for automation practice
 
-- [ ] Deploy one Rocky Linux VM as an Ansible control node.
-- [ ] Deploy at least one separate Rocky Linux VM as a managed node.
-- [ ] Assign documented hostnames and IP addresses using the lab's existing addressing plan.
-- [ ] Add forward and reverse DNS records for the new systems.
+- [x] Deploy one Rocky Linux VM as an Ansible control node.
+- [x] Deploy at least one separate Rocky Linux VM as a managed node.
+- [x] Assign documented hostnames and IP addresses using the lab's existing addressing plan.
+- [x] Add forward and reverse DNS records for the new systems.
 - [ ] Create a non-root administrative account and configure `sudo` appropriately.
 - [ ] Configure SSH key-based authentication from the control node to the managed node.
 - [ ] Confirm hostname resolution, ICMP connectivity, SSH access, time synchronization, and package repository access.
-- [ ] Record a troubleshooting log for at least one issue encountered and resolved.
+- [x] Record a troubleshooting log for at least one issue encountered and resolved.
 
 **Completion evidence:** The control node can resolve and connect to the managed node by hostname using SSH keys.
 
