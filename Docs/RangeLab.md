@@ -90,8 +90,8 @@ Public review history. A personal repo that shows you can write code; a merged u
 
 ## Storage
 
-- [[datastore1]]
-- [[datastore2]]
+- [[datastore01-01]]
+- [[datastore01-02]]
 
 ---
 

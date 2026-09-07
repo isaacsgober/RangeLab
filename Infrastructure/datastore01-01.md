@@ -1,4 +1,4 @@
-# datastore1
+# datastore01-01
 
 ## Purpose
 Default ESXi system datastore created during installation.
@@ -38,11 +38,14 @@ During the initial ESXi 9 installation, the installer allocated most of the 142 
 
 Because there was no unallocated disk space remaining, this datastore could not be expanded.
 
-To provide sufficient storage for Range Lab virtual machines, a second virtual disk was added to [[esxi01]], and [[datastore2]] was created.
+To provide sufficient storage for Range Lab virtual machines, a second virtual disk was added to [[esxi01]], and [[datastore01-02]] was created.
+
+Renamed from `datastore1` on 2026-09-07 to match the `datastore<HH>-<NN>` form in [[Naming Convention]].
 
 ---
 
 ## Related
 
 - [[esxi01]]
-- [[datastore2]]
+- [[datastore01-02]]
+- [[Naming Convention]]

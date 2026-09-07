@@ -1,4 +1,4 @@
-# datastore2
+# datastore01-02
 
 ## Purpose
 Primary datastore for the Range Lab virtual machines.
@@ -36,9 +36,11 @@ ___
 
 ## Notes
 
-A second 224 GB virtual disk was added to [[esxi01]] after discovering that the default datastore (`[[datastore1]]`) could not be expanded.
+A second 224 GB virtual disk was added to [[esxi01]] after discovering that the default datastore ([[datastore01-01]]) could not be expanded.
 
-The new disk was initialized with the VMFS 6 filesystem and configured as `datastore2`. All future virtual machines—including vCenter, Windows Server, Linux, and other Range Lab workloads—will be stored on this datastore.
+The new disk was initialized with the VMFS 6 filesystem and configured as a datastore. All future virtual machines—including vCenter, Windows Server, Linux, and other Range Lab workloads—will be stored on this datastore.
+
+Renamed from `datastore2` on 2026-09-07 to match the `datastore<HH>-<NN>` form in [[Naming Convention]].
 
 ___
 
@@ -46,4 +48,5 @@ ___
 ## Related
 
 - [[esxi01]]
-- [[datastore1]]
+- [[datastore01-01]]
+- [[Naming Convention]]

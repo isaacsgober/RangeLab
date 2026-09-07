@@ -31,7 +31,7 @@ To provide centralized management of ESXi hosts and virtual infrastructure; it i
 
 - [[esxi01]] 
 - [[VMnet10]] 
-- [[datastore2]] 
+- [[datastore01-02]] 
 - [[dnsmasq]]
 - NTP *(recommended)* ([[TO BE UPDATED]])
 
@@ -49,4 +49,4 @@ The VMware vCenter Server Appliance (VCSA) is a preconfigured virtual appliance 
 - [[ESXi]] 
 - [[vSphere]] 
 - [[VMnet10]] 
-- [[datastore2]]
+- [[datastore01-02]]
