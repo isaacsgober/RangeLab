@@ -23,10 +23,10 @@ Allocation policy: [[ADR-0001 - IP addressing plan]].
 | [[esxi01]]        | [[10.10.10.10]] |
 | [[vcenter01]]     | [[10.10.10.15]] |
 | [[ansible01]]     | [[10.10.10.20]] |
+| [[managed01]]     | [[10.10.10.21]] |
 
 ## Planned
 
-| Device                                                                            | Address         | Phase |
-| --------------------------------------------------------------------------------- | --------------- | ----- |
-| [[managed01]] [see revisions](ADR-0001%20-%20IP%20addressing%20plan.md#revisions) | [[10.10.10.21]] | 2     |
-| vyos01                                                                            | 10.10.10.3      | 2     |
+| Device | Address    | Phase |
+| ------ | ---------- | ----- |
+| vyos01 | 10.10.10.3 | 2     |
