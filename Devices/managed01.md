@@ -64,6 +64,8 @@ SSH: `<user>@managed01.rangelab.local`
 ---
 ## Services
 
+- [[chrony]] — NTP client of [[ansible01]]
+
 ---
 ## Notes
 
@@ -77,9 +79,14 @@ This machine was cloned from [[ansible01]].
 
 `ansible-core` is installed rather than the full `ansible` package.
 
+`~ansible/.ssh/authorized_keys` holds [[ansible01]]'s Ed25519 public key — the `ansible` account is reachable by key from the control node (Phase 2 / [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account)).
+
+Time is synced from [[ansible01]] via [[chrony]] (`server ansible01.rangelab.local iburst`).
+
 ---
 ## Related
 
 - [[esxi01]]
 - [[ansible01]]
 - [[VM Network]]
+- [[chrony]]

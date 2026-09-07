@@ -33,7 +33,7 @@ To provide centralized management of ESXi hosts and virtual infrastructure; it i
 - [[VMnet10]] 
 - [[datastore01-02]] 
 - [[dnsmasq]]
-- NTP *(recommended)* ([[TO BE UPDATED]])
+- NTP *(recommended)* — lab NTP is [[chrony]] on [[ansible01]]; vcenter01 is not yet a client of it
 
 ---
 ## Notes
@@ -50,3 +50,4 @@ The VMware vCenter Server Appliance (VCSA) is a preconfigured virtual appliance 
 - [[vSphere]] 
 - [[VMnet10]] 
 - [[datastore01-02]]
+- [[chrony]]

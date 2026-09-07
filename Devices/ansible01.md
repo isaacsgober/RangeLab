@@ -65,6 +65,7 @@ SSH: `<user>@ansible01.rangelab.local`
 ## Services
 
 - [[Ansible]]
+- [[chrony]] — lab NTP server
 
 ---
 ## Notes
@@ -79,9 +80,14 @@ This machine was cloned to create [[managed01]].
 
 `ansible-core` is installed rather than the full `ansible` package.
 
+Serves NTP to the [[VMnet10]] segment via [[chrony]] (`local stratum 10`, `allow 10.10.10.0/24`). It has no upstream, so it is the lab's undisciplined time root — see [[chrony]] for the tradeoff.
+
+The `ansible` service account authenticates to managed nodes with an Ed25519 SSH key at `~ansible/.ssh/id_ed25519`. The private key stays on this host and is excluded from the repo.
+
 ---
 ## Related
 
 - [[esxi01]]
 - [[managed01]]
 - [[VM Network]]
+- [[chrony]]
