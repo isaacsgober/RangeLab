@@ -54,8 +54,8 @@ vcenter01.rangelab.local
 ---
 ## Management
 
-Web Interface:
-https://10.10.10.10
+vSphere Client: https://vcenter01.rangelab.local (10.10.10.15)
+VAMI: https://vcenter01.rangelab.local:5480
 
 ---
 ## Resources
@@ -66,7 +66,7 @@ https://10.10.10.10
 
 ### Storage
 #### Datastore
-[[datastore2]]
+[[datastore01-02]]
 
 ---
 
@@ -87,5 +87,5 @@ VMware [[vCenter]]
 
 - [[esxi01]]
 - [[vCenter]]
-- [[datastore2]]
+- [[datastore01-02]]
 - [[VMnet10]]

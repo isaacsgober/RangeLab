@@ -35,7 +35,7 @@ DNS must be functional for vCenter to properly operate; the only solution is to 
 	    - the interface wasn't up when dnsmasq started. Confirm with `ip addr show ens160`. See Troubleshooting 2026-09-05.
     - Config errors :
 	    - check and make necessary updates to `/etc/dnsmasq.conf` via 
-	     `sudo nano /etc/dnsmasq.conf`
+	     `sudo nano /etc/dnsmasq.conf` (or `vi`)
     
 4. **Restart dnsmasq:** `sudo systemctl restart dnsmasq`
 5. **Verify resolution.** 
