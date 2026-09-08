@@ -50,14 +50,14 @@ See [[Phase 0 Screenshots]].
 ## Phase 3 — Configure the managed node with Ansible
 
 - [x] Install Ansible on the control node.
-- [ ] Create a YAML inventory using DNS hostnames rather than hard-coded ad hoc commands.
-- [ ] Run `ansible all -m ping` successfully against the managed node.
-- [ ] Write a playbook that updates packages and installs a small set of utilities.
+- [x] Create a YAML inventory using DNS hostnames rather than hard-coded ad hoc commands.
+- [x] Run `ansible all -m ping` successfully against the managed node.
+- [x] Write a playbook that updates packages and installs a small set of utilities.
 - [ ] Add tasks to create a user, deploy an SSH public key, configure a service, and copy a managed configuration file.
 - [ ] Use handlers so services restart only when configuration changes.
 - [ ] Use variables for values that may differ between hosts or environments.
 - [ ] Run `ansible-lint` and correct reasonable findings.
-- [ ] Run the playbook twice and verify that the second run reports no unnecessary changes.
+- [x] Run the playbook twice and verify that the second run reports no unnecessary changes.
 - [ ] Intentionally introduce a safe configuration problem, diagnose it, fix the playbook, and document the result.
 
 **Completion evidence:** A repeatable playbook, successful idempotency check, and documented troubleshooting example.
