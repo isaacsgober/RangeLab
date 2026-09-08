@@ -35,7 +35,7 @@ N/A
 
 ## Network
 
-IPv4: [[10.10.10.3]]
+IPv4: [[10.10.10.1]]
 Mask: 255.255.255.0
 Gateway: To be configured.
 DNS: [[10.10.10.2]]
