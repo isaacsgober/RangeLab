@@ -1,0 +1,29 @@
+---
+- name: Base config and optional pkg updatefor all nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: Install base utils
+      ansible.builtin.dnf:
+        name:
+          - bash-completion
+          - bind-utils
+          - git
+          - tmux
+          - tree
+          - vim-enhanced
+        state: present
+      tags: 
+        - always
+# Inert in this lab; using local
+    - name: Update all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      tags: 
+        - never
+        - update
+
+
+
+
