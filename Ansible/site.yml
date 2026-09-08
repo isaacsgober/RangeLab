@@ -15,7 +15,8 @@
         state: present
       tags: 
         - always
-# Inert in this lab; using local
+# Inert in this lab; using local DVD repo. Kept for future update path.
+# Run with `--tags update`.
     - name: Update all packages
       ansible.builtin.dnf:
         name: "*"
