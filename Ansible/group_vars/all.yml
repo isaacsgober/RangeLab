@@ -1,0 +1,8 @@
+---
+base_utils:
+  - bash-completion
+  - bind-utils
+  - git
+  - tmux
+  - tree
+  - vim-enhanced

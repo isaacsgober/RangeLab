@@ -37,13 +37,7 @@
 
     - name: Install base utils
       ansible.builtin.dnf:
-        name:
-          - bash-completion
-          - bind-utils
-          - git
-          - tmux
-          - tree
-          - vim-enhanced
+        name: "{{ base_utils }}"
         state: present
       tags: 
         - always
