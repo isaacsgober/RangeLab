@@ -55,7 +55,7 @@ Ensures:
 - **Clone generalization** — before adding a cloned VM to the inventory, give it its own:
   hostname, IP, SSH host keys (`rm /etc/ssh/ssh_host_*` then `ssh-keygen -A`),
   `/etc/machine-id` (`rm /etc/machine-id && systemd-machine-id-setup`). See
-  `../Docs/Troubleshooting.md`, 2026-09-08.
+  `../vault/Docs/Troubleshooting.md`, 2026-09-08.
 
 ## Known gaps
 
@@ -64,4 +64,4 @@ Ensures:
   lint (checklist L59) is deferred until this is solved.
 - **Line endings** — playbook and config files must be LF. `.gitattributes` (`eol=lf`)
   enforces it for tracked files; an untracked file `scp`'d with CRLF will break. See
-  `../Docs/Troubleshooting.md`, 2026-09-08.
+  `../vault/Docs/Troubleshooting.md`, 2026-09-08.
