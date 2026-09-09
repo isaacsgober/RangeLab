@@ -1,7 +1,7 @@
 # Troubleshooting Log
 
 _Add an entry every time something breaks and gets fixed. Phase 2 requires at least one
-entry; Phase 6 wants DNS, SSH, and at least one Ansible issue covered._
+entry; Phase 6 requires DNS, SSH, and at least one Ansible issue covered.
 
 ## Entry template
 
@@ -124,3 +124,88 @@ N/A
 The host's FQDN was configured earlier the same day (`esxcli system hostname get`
 reported correct values), but the certificate was not regenerated at that time and
 still carried the installation-time common name.
+
+---
+
+### 2026-09-08 — Persistent journald not activating after Ansible deploy
+
+**System(s) affected:**
+[[ansible01]], [[managed01]] — Phase 3 playbook (`Ansible/site.yml`)
+
+**Symptom:**
+The playbook deployed `/etc/systemd/journald.conf.d/rangelab.conf` (`Storage=persistent`)
+and its handler restarted `systemd-journald`. The run was green — every task `ok`/`changed`,
+handler fired — but `/var/log/journal/` did not exist and `journalctl` was still writing to
+`/run/log/journal/` (volatile).
+
+**Diagnosis steps:**
+- `file rangelab.conf` → `ASCII text` (ruled out a UTF-8 BOM).
+- `cat -A rangelab.conf` → `[Journal]^M$` / `Storage=persistent^M$` — CRLF line endings. The
+  file was authored on Windows and `scp`'d straight over, bypassing git's `eol=lf`
+  normalisation (still untracked).
+- After the CRLF fix, `systemd-analyze cat-config systemd/journald.conf` confirmed journald
+  was merging the drop-in and `Storage=persistent` was in effect.
+- `journalctl --header` still showed `/run/log/journal/…` with a correct config and a fresh
+  `systemctl restart systemd-journald`.
+- `systemctl status systemd-journald` confirmed the handler's restart had actually happened.
+- Manually created `/var/log/journal` and restarted journald — still volatile.
+
+**Root cause:**
+Two issues stacked.
+1. CRLF in the drop-in: journald read `Storage=persistent\r`, did not recognise the value,
+   and fell back to `auto` — which only uses `/var/log/journal/` if it already exists.
+2. Even with a correct config, a live `systemctl restart systemd-journald` does not complete
+   the volatile→persistent migration on RHEL-family. That is a boot-time sequence:
+   `systemd-tmpfiles-setup` creates the directory, `systemd-journald` starts against it,
+   `systemd-journal-flush` moves the runtime logs to disk.
+
+**Fix:**
+- Converted `Ansible/files/journald-rangelab.conf` to LF endings with a trailing newline;
+  re-`scp`'d.
+- Added a `file` task to `site.yml` creating `/var/log/journal` (`mode: "2755"`,
+  `group: systemd-journal`) and a second handler running `journalctl --flush`. Handlers are
+  ordered restart-then-flush (handlers run in definition order, not `notify` order).
+
+**Verification:**
+- [[managed01]]: rebooted → `journalctl --header` shows `/var/log/journal/…`.
+- [[ansible01]]: not rebooted. Ran the updated playbook — the new task and handlers reached
+  persistent storage with no reboot. Third run: `changed=0` on both hosts, no handlers.
+
+**Notes:**
+`.gitattributes` (`* text=auto eol=lf`) only normalises during git operations. An untracked
+file copied out-of-band keeps its Windows endings — the reason this file must be committed,
+and an argument for `git`-based sync over raw `scp`.
+
+---
+
+### 2026-09-08 — Duplicate machine-id on cloned node
+
+**System(s) affected:**
+[[managed01]] (cloned from [[ansible01]])
+
+**Symptom:**
+Both hosts' persistent journal directories were named
+`/var/log/journal/49098572b4a2433c8cae4c8ed299ac21/` — the same machine ID.
+`cat /etc/machine-id` was identical on both.
+
+**Diagnosis steps:**
+Compared `/etc/machine-id` on each host. The 2026-09-06 clone was meant to reset it (with hostname, IP, SSH host keys) but the reset did not occur.
+
+**Root cause:**
+[[managed01]] kept `/etc/machine-id` from the [[ansible01]] clone; it was never regenerated.
+
+**Fix:**
+On [[managed01]]:
+```
+sudo rm -f /etc/machine-id
+sudo systemd-machine-id-setup
+sudo reboot
+```
+
+**Verification:**
+[[managed01]] `/etc/machine-id` is now `29f938c8ef834cd983295458147d28c1`, distinct from
+[[ansible01]]. A new journal directory was created under the new ID; the stale `49098572…`
+directory was rm'd.
+
+**Notes:**
+No functional impact in the current lab (static addressing, no central journal collection), but a shared machine-id collides for anything that assumes it is unique. Clone generalization (machine-id, SSH host keys, hostname, IP) should be a documented, verified checklist — see `Ansible/README.md`.
