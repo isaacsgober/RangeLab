@@ -55,8 +55,8 @@ See [[Phase 0 Screenshots]].
 - [x] Write a playbook that updates packages and installs a small set of utilities.
 - [x] Add tasks to create a user, deploy an SSH public key, configure a service, and copy a managed configuration file.
 - [x] Use handlers so services restart only when configuration changes.
-- [ ] Use variables for values that may differ between hosts or environments.
-- [ ] Run `ansible-lint` and correct reasonable findings.
+- [x] Use variables for values that may differ between hosts or environments.
+- [ ] Run `ansible-lint` and correct reasonable findings. (deferred)
 - [x] Run the playbook twice and verify that the second run reports no unnecessary changes.
 - [x] Intentionally introduce a safe configuration problem, diagnose it, fix the playbook, and document the result.
 
