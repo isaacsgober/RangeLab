@@ -46,3 +46,24 @@ The esxi01 console (DCUI) banner shows `esxi01` rather than the FQDN
 `esxi01.rangelab.local`. `esxcli system hostname get` reports the domain and FQDN correctly,
 so the configuration is right — this is display-only, no functional impact. Possibly the
 same install-time root as the certificate issue above.
+
+---
+
+## No offline path for Ansible content outside ansible-core
+
+**Status:** accepted; workarounds in place. Candidate for its own ADR.
+
+Lab nodes install packages only from the mounted Rocky 10.2 DVD
+([[ADR-0003 - Local ISO package repository]]), and VMnet10 has no route off-subnet. The DVD
+ships `ansible-core` but none of:
+
+- **`ansible.posix`** — provides `authorized_key`. `site.yml` manages
+  `~labadmin/.ssh/authorized_keys` directly with `ansible.builtin.file` + `ansible.builtin.copy`
+  instead.
+- **`ansible-lint`** — checklist L59. Deferred until there is an install path.
+- **`yamllint`** — same.
+
+Both `pip` and `ansible-galaxy` need an index the subnet cannot reach. Getting these onto
+[[ansible01]] means staging them from a connected machine — `pip download` wheels or a
+downloaded collection tarball, copied over `scp` and installed with `--no-index`. Not yet
+attempted.
