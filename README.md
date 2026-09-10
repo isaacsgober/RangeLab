@@ -22,7 +22,8 @@ Obsidian, and render as plain text on GitHub.
 Precision7730 (physical host, VMware Workstation)
 ├── esxi01 (nested ESXi)
 │    ├── vcenter01 (VCSA)
-│    └── [Ansible control / managed nodes — Phase 2, not yet built]
+│    ├── ansible01 (Rocky Linux — Ansible control node, lab NTP)
+│    └── managed01 (Rocky Linux — Ansible managed node)
 └── dnsmasqhost (Rocky Linux — DNS only)
 ```
 
@@ -45,21 +46,21 @@ topology, and [`vault/Architecture/`](vault/Architecture/) for the naming conven
   - `Templates/` — Obsidian note templates used to keep entries consistent
   - `Attachments/` — evidence screenshots
 - `Ansible/` — control-node inventory, variables, and playbook (Phase 3)
-- `Scripts/` — the Bash/Python utility (Phase 4, not yet started)
+- `Scripts/` — the Python utility (Phase 4)
 
 ## Status
 
-Current phase: _(update as you go — see `vault/Docs/Project_Checklist.md`)_
+Current phase: 5 - read-only API exercise
 
-| Phase | Description                          | Status |
-|-------|---------------------------------------|--------|
-| 0     | Baseline documentation                |        |
-| 1     | Git-backed documentation repository   |        |
-| 2     | Ansible control + managed nodes       |        |
-| 3     | Ansible configuration                 |        |
-| 4     | Bash/Python utility                   |        |
-| 5     | Read-only API exercise                |        |
-| 6     | Packaging for review                  |        |
+| Phase | Description                         | Status            |
+| ----- | ----------------------------------- | ----------------- |
+| 0     | Baseline documentation              | Complete          |
+| 1     | Git-backed documentation repository | Complete          |
+| 2     | Ansible control + managed nodes     | Complete          |
+| 3     | Ansible configuration               | One task deferred |
+| 4     | Bash/Python utility                 | Complete          |
+| 5     | Read-only API exercise              | In-Progress       |
+| 6     | Packaging for review                |                   |
 
 ## Hardware / Software
 
