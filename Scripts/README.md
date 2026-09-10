@@ -65,10 +65,11 @@ In a terminal the result lines are colored:
 
 ### Exit codes
 
-| Code | Meaning                  |
-| ---- | ------------------------ |
-| `0`  | Every host passed        |
-| `1`  | At least one host failed |
+| Code | Meaning                   |
+| ---- | ------------------------- |
+| `0`  | Every host passed         |
+| `1`  | At least one host failed  |
+| `2`  | Invalid/missing arguments |
 
 ### Failure handling
 
