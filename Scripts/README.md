@@ -79,9 +79,18 @@ CONNECTIVITY CHECK COMPLETE: [92m1 pass[0m, [91m2 fails[0m
 
 ### Testing
 
-Verified against live lab hosts: a passing case (`ansible01`, `managed01` on port 22),
-a DNS failure (a deliberately bogus name), and a closed port (port 443 on an SSH-only
-node). Both exit codes confirmed.
+Exercised against live lab hosts and loopback, covering the success path and each
+failure mode:
+
+- open port — `ansible01`, `managed01` on 22
+- DNS failure — a deliberately bogus name
+- refused connection — `127.0.0.1` on a closed port
+- timeout — port 443 on an SSH-only node
+- other OS error — `--timeout 0`
+- invalid arguments — non-integer `--port`, missing hosts
+
+Exit codes all confirmed: `0` (all pass), `1` (a check failed), `2` (argparse rejects
+bad arguments).
 
 ### Known limitations
 
