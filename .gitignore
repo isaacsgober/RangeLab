@@ -1,5 +1,5 @@
 #Preserve current obsidian settings
 vault/.obsidian/
-
+.obsidian
 #Ignore secrets
 creds.md
