@@ -28,7 +28,7 @@ See [[Phase 0 Screenshots]].
 - [x] Add directories for `docs/`, `diagrams/`, `ansible/`, and `scripts/`.
 - [x] Add the sanitized topology diagram and baseline documentation.
 - [x] Add a `.gitignore` that excludes private keys, credentials, environment files, logs, and temporary files.
-- [ ] Practice `clone`, `status`, `add`, `commit`, `push`, `pull`, branch creation, merge, and viewing commit history.
+- [x] Practice `clone`, `status`, `add`, `commit`, `push`, `pull`, branch creation, merge, and viewing commit history.
 - [x] Make several small, descriptive commits instead of one large initial upload.
 - [x] Verify that a fresh clone contains no secrets and that its documentation renders correctly.
 
@@ -64,12 +64,12 @@ See [[Phase 0 Screenshots]].
 
 ## Phase 4 — Add a small Bash or Python utility
 
-- [ ] Choose one bounded task, such as checking DNS resolution, testing TCP ports, reporting VM reachability, or validating required services.
-- [ ] Implement the utility in Bash or Python with clear comments and readable output.
-- [ ] Accept hostnames or settings through command-line arguments or a configuration file rather than embedding them throughout the code.
-- [ ] Handle common failures such as an unresolved hostname, refused connection, timeout, or missing dependency.
-- [ ] Test both successful and unsuccessful cases.
-- [ ] Add usage instructions and sample sanitized output to the repository.
+- [x] Choose one bounded task, such as checking DNS resolution, testing TCP ports, reporting VM reachability, or validating required services.
+- [x] Implement the utility in Bash or Python with clear comments and readable output.
+- [x] Accept hostnames or settings through command-line arguments or a configuration file rather than embedding them throughout the code.
+- [x] Handle common failures such as an unresolved hostname, refused connection, timeout, or missing dependency.
+- [x] Test both successful and unsuccessful cases.
+- [x] Add usage instructions and sample sanitized output to the repository.
 
 **Completion evidence:** A reusable script with documented inputs, outputs, error handling, and test cases.
 
