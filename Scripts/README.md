@@ -43,17 +43,19 @@ python healthcheck.py vcenter01.rangelab.local -p 443 -t 1
 
 Checking port 443 (management web UI) across three hosts:
 
-```ansi
-[90m==================================================================[0m[96m
-CHECK CONNECTIVITY:
-[0m[90m------------------------------------------------------------------[0m
-[92mvcenter01.rangelab.local | 10.10.10.15 | Port 443 is open[0m
-[93mansible01.rangelab.local | 10.10.10.20 | Port 443 is closed (timeout)[0m
-[91mbogus.rangelab.local | could not be resolved[0m
-[90m------------------------------------------------------------------[0m[96m
-CONNECTIVITY CHECK COMPLETE: [92m1 pass[0m, [91m2 fails[0m
-[0m[90m==================================================================[0m
 ```
+==================================================================
+CHECK CONNECTIVITY:
+------------------------------------------------------------------
+vcenter01.rangelab.local | 10.10.10.15 | Port 443 is open
+ansible01.rangelab.local | 10.10.10.20 | Port 443 is closed (timeout)
+bogus.rangelab.local | could not be resolved
+------------------------------------------------------------------
+CONNECTIVITY CHECK COMPLETE: 1 pass, 2 fails
+==================================================================
+```
+
+In a terminal the result lines are colored:
 
 | Color  | Interpretation                        |
 | ------ | ------------------------------------- |
