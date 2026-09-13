@@ -1,6 +1,7 @@
 # RangeLab Scripts
 
-Helper scripts for the lab. Standard-library Python only — nothing to install to run them.
+Helper scripts for the lab. See each script's own requirements below — some are
+standard-library only, some need a `pip install`.
 
 ## healthcheck.py
 
@@ -103,3 +104,97 @@ bad arguments).
 - All hosts to be tested must be passed on the command line; tedious for a large list.
 
 These limitations are tracked for a follow-up revision.
+
+## vcenter_inventory.py
+
+Authenticates to the vCenter REST API and lists the VMs it currently manages. Meant to
+be run directly - it prompts for credentials interactively - or imported: `login()` and
+`list_vms()` are written to be called from other scripts.
+
+### Requirements
+
+- Python 3.10+
+- `requests` (`pip install requests`) — not standard library
+- A network path to vcenter01 and a vCenter SSO account (e.g. `administrator@vsphere.local`)
+
+### Endpoints used
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/api/session` | Authenticate (HTTP Basic Auth), returns a session token |
+| `GET` | `/api/vcenter/vm` | List VMs, using the token in a `vmware-api-session-id` header |
+
+### Response fields used
+
+Each VM entry (when any exist) carries `vm` (unique ID), `name`, and `power_state`
+(`POWERED_ON` / `POWERED_OFF`).
+
+### Usage
+
+```
+python vcenter_inventory.py
+```
+
+No arguments - prompts for username and password at runtime.
+
+### Sample output
+
+```
+Enter vCenter username: administrator@vsphere.local
+Enter password: 
+[]
+```
+
+An empty list is the correct, current result; not a bug. vCenter has never successfully
+added esxi01 as a managed host (see [[Known-Issues]]), so every VM in the lab runs directly
+on esxi01, outside vCenter's inventory. Confirmed independently via `curl` and via
+`/api/vcenter/host` (also empty) before writing this script.
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0`  | Login and VM list both succeeded |
+| `1`  | Any request failed (see below) |
+
+### Failure handling
+
+| Situation | Reported as |
+|-----------|-------------|
+| Host unreachable / DNS failure | `Could not reach host <host>: <detail>` |
+| Request timed out | `Request to <host> timed out: <detail>` |
+| Bad credentials or other HTTP error | `HTTP error occurred: <status> ...` + `Details: <body>` |
+| Any other request failure | `An error occurred: <detail>` |
+
+### Security precautions
+
+- Credentials are entered interactively (`getpass`/`input`) at runtime - never hardcoded,
+  never written to disk, never in the repo.
+- The self-signed lab certificate is accepted (`verify=False`). Acceptable only because
+  this is a closed, host-only lab network talking to a system we control.
+- The session token is a short-lived bearer credential; the script never logs or persists one.
+- A wrong username and a wrong password both return the identical `UNAUTHENTICATED`
+  error. This is deliberate vCenter SSO behavior that prevents an attacker from discovering
+  valid usernames from the error message alone.
+
+### Testing
+
+- `login`: correct credentials (success), wrong password, wrong username (same error as
+  wrong password), a near-zero timeout, and a nonexistent
+  hostname. All five produced the expected respective message.
+- `list_vms` : success (`200`, `[]`) and a deliberately bad URL path (`404`); proved the
+  error handling checks the actual VM-list response, not a stale response from the login step.
+- Exit code `1` fires from every failure branch (`raise SystemExit(1)`); `0` on normal
+  completion.
+
+### Known limitations
+
+- The VM list is always empty in this lab; see Sample output above. It is a real
+  infrastructure gap, not a script defect.
+- Every failure calls `raise SystemExit(1)`, ending the whole process. Fine for a
+  standalone script; would need to change to `return`/a plain exception if a future
+  reuse case wants to skip one failure and keep going (e.g. looping over several vCenters).
+- `host` is hardcoded (`vcenter01.rangelab.local`) — no command-line arguments.
+
+These limitations are tracked for a follow-up revision. Further testing will be done once esxi01
+is added to vCenter (see [[Known-Issues]]).
