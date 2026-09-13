@@ -75,12 +75,12 @@ See [[Phase 0 Screenshots]].
 
 ## Phase 5 — Exercise an API
 
-- [ ] Choose a safe read-only API, preferably the vCenter REST API if available in the lab.
-- [ ] Use `curl` first to authenticate and request a small piece of inventory data, such as VM names or power state.
-- [ ] Store credentials outside the script or repository using an environment file excluded by `.gitignore`, a credential store, or interactive input.
-- [ ] Repeat the read-only request in Python if Phase 4 used Python or as a separate small exercise.
-- [ ] Handle authentication failure and unreachable-service errors.
-- [ ] Document the endpoint, request purpose, response fields used, and security precautions without publishing credentials.
+- [x] Choose a safe read-only API, preferably the vCenter REST API if available in the lab.
+- [x] Use `curl` first to authenticate and request a small piece of inventory data, such as VM names or power state.
+- [x] Store credentials outside the script or repository using an environment file excluded by `.gitignore`, a credential store, or interactive input.
+- [x] Repeat the read-only request in Python if Phase 4 used Python or as a separate small exercise.
+- [x] Handle authentication failure and unreachable-service errors.
+- [x] Document the endpoint, request purpose, response fields used, and security precautions without publishing credentials.
 
 **Completion evidence:** A sanitized example showing successful read-only API interaction and safe credential handling.
 
