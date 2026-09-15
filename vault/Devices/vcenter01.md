@@ -90,6 +90,7 @@ VMware [[vCenter]]
 	Now manages [[esxi01]].
 	The appliance's embedded dnsmasq (`127.0.0.1`) briefly carried hand-edited `host-record` entries and `neg-ttl=10`, a workaround for the add-host failure. They were removed the same day once [[dnsmasqhost]] was fixed. `/etc/dnsmasq.conf` is stock again, and the workaround is kept as `/etc/dnsmasq.conf.workaround-rangelab`. See [[Troubleshooting]] (2026-09-15).
 	The 2026-09-14 `DNS=10.10.10.2` / `Domains=rangelab.local` lines in `/etc/systemd/resolved.conf` were also removed (backup `/etc/systemd/resolved.conf.bak-rangelab`). DNS settings now come only from VAMI's network configuration.
+	Root is subject to `pam_faillock`: 3 failed password checks within 15 minutes lock it for 5 minutes, and during the lock even the correct password is refused. `faillock --user root` shows the failures; `faillock --user root --reset` clears them. See [[Troubleshooting]] (2026-09-15).
 	NTP: VAMI timesync mode NTP, server [[ansible01]] (set 2026-09-14, verified synced 2026-09-15). The appliance's `ntp.conf` includes `tinker panic 0`, so ntpd accepts large corrections.
 	Starts last in [[esxi01]]'s autostart order and shuts down first, with a 600 s shutdown delay.
 
