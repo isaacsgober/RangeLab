@@ -40,21 +40,39 @@ The add-host fix lives in appliance files that VCSA's own tooling doesn't manage
   Harmless, but it should be collapsed to one deliberate line, or reverted since it fixed
   nothing.
 
+Both edits survived a full vcenter01 reboot on 2026-09-15. A VAMI network change or an
+appliance upgrade could still regenerate them.
+
 If the add-host failure returns, run `nslookup esxi01.rangelab.local 127.0.0.1` on vcenter01
 first.
 
 ---
 
-## vcenter01 has no configured time source
+## Suspending esxi01 costs nested VMs up to 15 minutes of wrong time
 
-The lab now runs NTP ([[chrony]] on [[ansible01]], serving `10.10.10.0/24`), but
-[[vcenter01]] is not a client of it and has no other enforced time source. On 2026-09-06 its
-clock and esxi01's agreed within ~3 s, but nothing keeps them synced. This will matter more
-at the Active Directory / Kerberos stage.
+**Status:** accepted. Prefer shutting down.
 
-Options: point the VCSA at [[ansible01]], point it at [[esxi01]] (enable NTP there first), or
-accept the drift and document it until the AD work. See [[vCenter]] (its Dependencies note
-already flags this).
+Suspending [[esxi01]] freezes the clocks of [[ansible01]], [[managed01]], and [[vcenter01]]. On
+resume, each one is behind by however long the suspend lasted. chrony and ntpd won't use their
+source again until the pre-suspend samples age out. After a 5.5-minute test suspend on 2026-09-15,
+the nodes recovered in stages: ansible01 after about 6.5 minutes, managed01 after about 12, and
+vcenter01 after about 15. A shutdown and boot avoids this entirely; see
+[ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
+
+---
+
+## Little headroom between Windows Time dispersion and ntpd's limit
+
+**Status:** open, with an optional fix.
+
+[[esxi01]] and [[vcenter01]] run ntpd, which rejects a source whose root distance is over 1.5 s.
+[[ansible01]] passes on the dispersion it receives from [[Precision7730]]. With Windows Time
+polling every 1024 s (`MaxPollInterval = 10`), that settles near 1.1 s, leaving about 0.4 s of
+headroom. At a 64 s poll it settled at 0.35 s.
+
+Fix: on Precision7730, set
+`HKLM\SYSTEM\CurrentControlSet\Services\W32Time\Config\MaxPollInterval` to `6`, then restart
+Windows Time. Expect about 5 minutes of 8 s dispersion after the restart.
 
 ---
 

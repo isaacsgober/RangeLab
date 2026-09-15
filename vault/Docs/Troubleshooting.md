@@ -354,3 +354,81 @@ blocker: the add kept failing the same way after each fix, until the dnsmasq cha
   `/etc/systemd/resolved.conf` seemed to fix default lookups, but `nslookup` asks 127.0.0.1
   first either way; most likely the negative cache entry had just expired. The 2026-09-06
   entry had already recorded the real signature (NXDOMAIN from 127.0.0.1) and ruled it out.
+
+---
+
+### 2026-09-15 — Lab clocks 3 h 49 m apart
+
+**System(s) affected:**
+[[ansible01]], [[managed01]], [[vcenter01]], [[esxi01]], [[dnsmasqhost]], [[Precision7730]]
+
+**Symptom:**
+A parallel clock sweep, run to verify the 2026-09-14 NTP configuration, split the lab into two
+groups (offsets from Precision7730):
+```
+ansible01   −13768.7 s    managed01    −13768.7 s    vcenter01   −13768.3 s
+esxi01          −0.2 s    dnsmasqhost      −0.1 s
+```
+vcenter01 and managed01 were synchronized to ansible01. esxi01 was configured for ansible01 but
+reported `Time Synchronized: false`.
+
+**Diagnosis steps:**
+- **ansible01:** `Stratum 10` from its local reference, with no sources. `chronyc clients` showed
+  managed01, esxi01, and vcenter01 all polling it, and vcenter01's ntpd and managed01's chrony were
+  locked to it.
+- **esxi01:** ntpd running with `-g` at `stratum 16`. `ntpq` showed reach 377 to ansible01 but the
+  peer wasn't selected, and the log said `no peer for too long, server running free now`.
+- **dnsmasqhost:** chronyd inactive, configured for `pool 2.rocky.pool.ntp.org`, which is
+  unreachable offline.
+- **Precision7730:** `w32tm /query /status` → "The service has not been started". Windows Time was
+  Stopped, startup type Manual.
+- **ansible01's boot:** its kernel log showed `rtc_cmos 00:01: setting system clock to
+  2026-09-15T03:38:02 UTC`, which was correct. VMware Tools timesync was Disabled.
+- **Usage pattern:** esxi01 is regularly suspended in Workstation, sometimes with dnsmasqhost left
+  running.
+
+**Root cause:**
+ansible01 was the lab's time root, with no upstream (`local stratum 10`). While esxi01 was
+suspended, every VM nested inside it froze. On resume, esxi01 and dnsmasqhost, which run directly
+in Workstation, were caught up to the host's clock. ansible01 had nothing to catch up from and
+carried on from where it stopped, 3 h 49 m behind. vcenter01 and managed01 followed it. esxi01
+refused to, because ESXi's ntpd allows one large correction at startup (`-g`) and after that refuses
+corrections over 1000 s.
+
+**Fix:**
+Made [[Precision7730]] the upstream
+([ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md)):
+- **Precision7730:** Windows Time set to Automatic and synced to `time.windows.com`. NTP server
+  enabled (`NtpServer\Enabled = 1`, `AnnounceFlags = 5`), with `MinPollInterval 6` and
+  `MaxPollInterval 10`. Firewall rule allowing UDP 123 from `10.10.10.0/24`.
+- **ansible01:** `server 10.10.10.1 iburst` and `makestep 1.0 -1`; `local stratum 10` removed.
+- **managed01:** `makestep 1.0 -1`.
+- **dnsmasqhost:** `server 10.10.10.1 iburst` and `makestep 1.0 -1`; chronyd enabled.
+- **vcenter01 and esxi01:** ntpd restarted, so each took its one startup correction.
+
+At first chrony ignored the host, because Windows advertised 8.16 s of root dispersion and chrony
+rejects sources over 3 s (`chronyc selectdata` showed `d`). Setting `LocalClockDispersion = 0` had
+no effect, because that value only applies when Windows runs on its own CMOS clock. The real cause
+was Windows Time's sample filter starting pessimistic after the service restart. At the 64 s poll
+the dispersion halved with every sample (8.16 → 4.16 → 2.16 → 1.15 → 0.64 → 0.38 s). ansible01
+then selected the host and stepped +13768.6 s, and its clients followed.
+
+**Verification:**
+- Sweep at 2026-09-15 17:49Z: all six clocks within 0.35 s of each other.
+- Cold shutdown and boot of esxi01 with autostart: every clock correct from boot, within 0.15 s.
+  ntpd on esxi01 and vcenter01 showed `sys.peer` with `flash=00`.
+- Against time.google.com, time.cloudflare.com, and time.windows.com, queried directly over NTP:
+  the lab runs about 1 s fast.
+
+**Notes:**
+- **Suspend test.** A 5.5-minute suspend of esxi01 brought the nested nodes back 330 s behind.
+  Recovery took about 6.5 minutes for ansible01, 12 for managed01, and 15 for vcenter01. chrony
+  and ntpd distrust a source until the pre-suspend samples age out (`Jitter of 10.10.10.1 exceeds
+  maxjitter of 1.000 seconds`). dnsmasqhost was never suspended, but following ansible01 pulled
+  its clock back 330 s, which is why it now syncs from the host directly. That cost is accepted for
+  suspends, and shutting down is preferred; see [[Known-Issues]].
+- **github.com's `Date` header is not a clock reference.** It is served from a CDN cache and once
+  read 10 s off. Query NTP servers directly.
+- **SSH drops during the suspend test** were OpenSSH 9.9's per-source penalties (`drop connection
+  ... penalty: exceeded LoginGraceTime`). Connections that could not finish logging in while esxi01
+  was frozen counted against this host's address, and sshd refused it until the penalty expired.

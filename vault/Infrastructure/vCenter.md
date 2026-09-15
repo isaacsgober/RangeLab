@@ -33,7 +33,7 @@ To provide centralized management of ESXi hosts and virtual infrastructure; it i
 - [[VMnet10]] 
 - [[datastore01-02]] 
 - [[dnsmasq]]
-- NTP *(recommended)* — lab NTP is [[chrony]] on [[ansible01]]; vcenter01 is not yet a client of it
+- NTP — [[vcenter01]] syncs from [[chrony]] on [[ansible01]] (VAMI timesync mode: NTP). See [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
 
 ---
 ## Notes
