@@ -89,6 +89,8 @@ VMware [[vCenter]]
 	Resized to 6 vCPU and 16 GB. At 2 vCPU the appliance was CPU-starved (15-minute load average 13.46).
 	Now manages [[esxi01]].
 	The appliance's embedded dnsmasq (`127.0.0.1`) has hand-edited `host-record` entries and `neg-ttl=10` that VCSA's own tooling doesn't manage — see [[Troubleshooting]] (2026-09-15) and [[Known-Issues]].
+	NTP: VAMI timesync mode NTP, server [[ansible01]] (set 2026-09-14, verified synced 2026-09-15). The appliance's `ntp.conf` includes `tinker panic 0`, so ntpd accepts large corrections.
+	Starts last in [[esxi01]]'s autostart order and shuts down first, with a 600 s shutdown delay.
 
 ---
 
