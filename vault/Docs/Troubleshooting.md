@@ -540,3 +540,66 @@ for any lab host.
   interface, so `resolvectl status` and `/etc/resolv.conf` still list `10.10.10.2` and
   `search rangelab.local`. `getent`, `resolvectl query`, `dig @127.0.0.1`, and the Envoy proxy
   all still resolved esxi01 afterward. vcenter01's DNS configuration is now entirely stock.
+
+---
+
+### 2026-09-15 — esxi01 DCUI shows the short hostname (expected behavior)
+
+**System(s) affected:**
+[[esxi01]]
+
+**Symptom:**
+The DCUI welcome screen reads `To manage this host, go to: https://esxi01/`, followed by
+`https://10.10.10.10/ (STATIC)`, rather than `https://esxi01.rangelab.local/`.
+
+**Diagnosis steps:**
+Reproduced it over SSH rather than at the console. `dcui` runs inside an SSH session, so the
+screen can be captured from a pseudo-terminal:
+```
+ssh -tt root@esxi01.rangelab.local "stty rows 30 cols 100; TERM=xterm dcui"
+```
+Every name setting already had the FQDN:
+```
+esxcli system hostname get   Host Name: esxi01   Domain Name: rangelab.local
+                             Fully Qualified Domain Name: esxi01.rangelab.local
+hostname                     esxi01.rangelab.local
+/Misc/HostName               esxi01.rangelab.local
+/etc/hosts                   10.10.10.10  esxi01.rangelab.local esxi01
+DNS                          server 10.10.10.2, search rangelab.local
+                             PTR 10.10.10.10 → esxi01.rangelab.local
+```
+Checked Broadcom KB 406630: when the Default TCP/IP Stack has no domain name, ESXi puts the
+short name in certificate requests. Not the case here. `vim-cmd hostsvc/net/info` shows the
+default stack with `hostName = "esxi01"` and `domainName = "rangelab.local"`.
+
+Tried `strace` on `dcui` to see where the name comes from. ESXi refuses (`Ptrace is disabled`),
+and that security control was left on.
+
+Tested the two ways a name lookup could produce the URL instead:
+- **Hosts file.** ESXi checks `files` before `dns`. Temporarily changed the `/etc/hosts` line to
+  `10.10.10.10 esxi01.hoststest.invalid esxi01`, started `dcui`, then restored the file (its
+  checksum matched the backup). The screen still showed `https://esxi01/`.
+- **DNS.** Captured port 53 on vmk0 (`tcpdump-uw -i vmk0 -n port 53`) while `dcui` started. The
+  only queries were ntpd's lookups of `ansible01.rangelab.local`; nothing for esxi01 or its PTR
+  record.
+
+**Root cause:**
+Nothing is misconfigured. The DCUI doesn't look the name up; it prints the host's configured host
+name. ESXi stores the name in two fields (`hostName = "esxi01"`, `domainName = "rangelab.local"`).
+`esxcli system hostname set --host` accepts only letters, numbers, and hyphens, so the host-name
+field can't hold an FQDN. The short URL is how the DCUI on this build (ESXi 9.1.0, build 25557999)
+presents a correctly configured host.
+
+**Fix:**
+None needed. Removed the entry from [[Known-Issues]].
+
+**Verification:**
+The two tests above: changing what 10.10.10.10 resolves to didn't change the screen, and the DCUI
+sent no DNS queries for the host.
+
+**Notes:**
+- `https://esxi01/` doesn't open from [[Precision7730]]. Windows doesn't add `rangelab.local` to
+  single-label names, so `curl https://esxi01/` couldn't resolve the host. Use
+  `https://esxi01.rangelab.local/` or the IP.
+- The ESXi Host Client, vCenter, and the host certificate all use the FQDN. The short DCUI URL
+  affects nothing else.

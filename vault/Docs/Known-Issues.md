@@ -34,14 +34,6 @@ Windows Time. Expect about 5 minutes of 8 s dispersion after the restart.
 
 ---
 
-## esxi01 DCUI shows the short hostname
-
-The esxi01 console (DCUI) banner shows `esxi01` rather than the FQDN
-`esxi01.rangelab.local`. `esxcli system hostname get` reports the domain and FQDN correctly,
-so the configuration is right — this is display-only, no functional impact.
-
----
-
 ## No offline path for Ansible content outside ansible-core
 
 **Status:** accepted; workarounds in place. Candidate for its own ADR.
