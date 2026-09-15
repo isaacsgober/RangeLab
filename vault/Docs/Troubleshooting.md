@@ -68,6 +68,10 @@ VAMI recovered without further intervention.
 
 ### 2026-09-06 — vCenter unable to add ESXi host
 
+> **Resolved 2026-09-15 — see that entry below.** The certificate hypothesis here was wrong.
+> The real lead was already in this entry's diagnosis: `nslookup` getting NXDOMAIN from
+> 127.0.0.1, which is VCSA's embedded dnsmasq rather than systemd-resolved.
+
 **System(s) affected:**
 [[vcenter01]], [[esxi01]]
 
@@ -209,3 +213,144 @@ directory was rm'd.
 
 **Notes:**
 No functional impact in the current lab (static addressing, no central journal collection), but a shared machine-id collides for anything that assumes it is unique. Clone generalization (machine-id, SSH host keys, hostname, IP) should be a documented, verified checklist — see `Ansible/README.md`.
+
+---
+
+### 2026-09-15 — vCenter unable to add ESXi host (resolved)
+
+Resolves the 2026-09-06 entry above. Investigated 2026-09-14 → 2026-09-15.
+
+**System(s) affected:**
+[[vcenter01]], [[esxi01]], [[dnsmasqhost]]
+
+**Symptom:**
+"Add standalone host" for `esxi01.rangelab.local` stalled at 80% ("Retrieving data from
+vCenter agent") for ~15 minutes, then failed:
+`A general system error occurred: Unable to push CA certificates and CRLs to host esxi01.rangelab.local`
+
+For the whole stall, `vpxd.log` repeated this every ~31 s:
+```
+[TrustedInfrastructure.HostConfig] Failed to collect uploaders for host esxi01.rangelab.local.
+  vapi.invalid.result.code<Recv of frame failed with code: 503 Service Unavailable>
+[TrustedInfrastructure.HostConfig] PrepareHostSecurity attempt N failed. Retrying ...
+```
+Some attempts left a host object in the inventory, stuck in `DISCONNECTED`.
+
+**Diagnosis steps:**
+
+Traced the 503. The failing call was `/hgw/host-NNNN/api` — vCenter's host gateway
+(`vmware-envoy-hgw`) forwarding a vAPI request to the host. Envoy's access log showed it
+never picked a destination at all:
+```
+POST /hgw/host-5008/api 503 no_healthy_upstream UH 31000ms
+```
+vpxd creates that route when the add starts, and the route finds the host by DNS name (its
+cluster config carries `dns_refresh_rate`). Everything on esxi01 was healthy: `hostd`,
+`vpxa`, `envoy`, and `apiForwarder` (8098) were listening, and `hostd.log` showed vpxd's
+session arriving. vCenter could reach the host. The gateway couldn't resolve its name.
+
+Compared resolution paths on vcenter01:
+```
+getent ahosts esxi01.rangelab.local         → 10.10.10.10   (NSS → systemd-resolved)
+nslookup esxi01.rangelab.local 127.0.0.1    → NXDOMAIN
+nslookup esxi01.rangelab.local 10.10.10.2   → 10.10.10.10
+```
+`/etc/resolv.conf` lists `nameserver 127.0.0.1` first. `ss -lnup` showed that 127.0.0.1:53
+is **VCSA's own embedded dnsmasq**, not systemd-resolved (whose stub is 127.0.0.53 — this
+corrects the 2026-09-06 note). Envoy queries the `resolv.conf` nameservers itself instead of
+going through NSS. `getent` succeeded even when run as the `envoy-hgw` user, while the
+gateway still had no endpoint. `curl` through VCSA's Envoy system proxy showed the same
+split: esxi01 by hostname hung for 20 s, by IP it answered in 30 ms. Anything using NSS kept
+working, which made the fault look intermittent.
+
+Read the embedded dnsmasq's query log (`/var/log/vmware/dnsmasq.log`):
+```
+query[A] esxi01.rangelab.local from 127.0.0.1
+cached esxi01.rangelab.local is NXDOMAIN
+```
+It was answering an A query from a *negative* cache entry, although 10.10.10.2 serves that A
+record correctly. The cached NXDOMAIN had to come from a query of another type.
+
+Checked what dnsmasqhost returns for AAAA:
+```
+nslookup -debug -type=AAAA esxi01.rangelab.local. 10.10.10.2     → rcode = NXDOMAIN
+nslookup -debug -type=AAAA vcenter01.rangelab.local. 10.10.10.2  → rcode = NXDOMAIN
+nslookup -debug -type=AAAA ansible01.rangelab.local. 10.10.10.2  → rcode = NXDOMAIN
+nslookup -debug -type=A    esxi01.rangelab.local. 10.10.10.2     → rcode = NOERROR, 1 answer
+```
+This is the trailing `can't find ...: NXDOMAIN` that follows every `nslookup` against
+10.10.10.2. It had been written off as a harmless IPv6 miss.
+
+Ruled out along the way: MTU (`vmkping -I vmk0 <vcenter> -d -s 1472` passed), reverse DNS
+(PTR resolves from both hosts), disk and memory (all volumes under 31%, 5.6 GiB available),
+licensing (Evaluation, valid to 2026-11-07), and `vmware-imagebuilder` (started; no change).
+
+**Root cause:**
+[[dnsmasqhost]] answers **NXDOMAIN** to AAAA queries for lab hosts that only have an A
+record. The correct answer is `NOERROR` with no records. NXDOMAIN means the name doesn't
+exist at all, for any record type.
+
+VCSA ships its embedded dnsmasq with `neg-ttl=3600`, so it caches negative replies for an
+hour even when they carry no TTL of their own. Any AAAA lookup of esxi01 (`nslookup` sends
+one automatically) left "esxi01 does not exist" in that cache, and the cache then answered
+A lookups with NXDOMAIN too. 127.0.0.1 is the first nameserver, and NXDOMAIN is a final
+answer, so lookups never fell through to 10.10.10.2.
+
+With esxi01 unresolvable, every `PrepareHostSecurity` call through the gateway got a 503,
+and vCenter never finished provisioning the host (esxi01's `vpxa.cfg` held no vCenter
+configuration). An hourly cycle fits the intermittency: the cache entry expires, resolution
+briefly works, and the next AAAA lookup poisons it again. That would explain partial
+progress (a host object, a new certificate) appearing and then stalling.
+
+**Fix:**
+On [[vcenter01]], with the original config backed up to `/etc/dnsmasq.conf.bak-rangelab`:
+```
+# /etc/dnsmasq.conf
+host-record=esxi01.rangelab.local,esxi01,10.10.10.10
+host-record=vcenter01.rangelab.local,vcenter01,10.10.10.15
+neg-ttl=10                                  # was 3600
+server=/rangelab.local/10.10.10.2           # redundant: already forwarded there via resolv.conf
+server=/10.10.10.in-addr.arpa/10.10.10.2    # same
+```
+```
+systemctl restart dnsmasq                   # full restart clears the cache
+service-control --restart vmware-envoy-hgw  # masked in systemd, so systemctl refuses it
+```
+`host-record` makes the embedded dnsmasq answer those names itself, for every record type.
+It never forwards them, so it never picks up dnsmasqhost's bad AAAA answer. The shorter
+`neg-ttl` limits the damage for other lab names.
+
+Then removed the stale `DISCONNECTED` host object and added esxi01 by FQDN with root
+credentials. (Reconnecting the old object failed with `vim.fault.InvalidLogin`.)
+
+This is a workaround on one client. The source, dnsmasqhost's AAAA answers, is still open —
+see [[Known-Issues]].
+
+**Verification:**
+```
+nslookup esxi01.rangelab.local 127.0.0.1   → 10.10.10.10
+POST /api/vcenter/host                     → HTTP 201 in 5.37 s   (previously a 15-minute hang)
+host-5017  esxi01.rangelab.local  CONNECTED   stable at t+0 / +45 / +90 s
+```
+vCenter now inventories `vcenter01`, `ansible01`, `managed01`, and datastores
+`datastore01-01` and `datastore01-02`. Not yet tested across a vcenter01 reboot.
+
+**Notes:**
+The same investigation turned up four other problems. Each was real, but none was the
+blocker: the add kept failing the same way after each fix, until the dnsmasq change.
+
+- **vcenter01 was CPU-starved.** 2 vCPUs, 15-minute load average 13.46. trustmanagement
+  requests took 27–50 s, and VAMI returned intermittent 503s. Resized to 6 vCPU / 15 GiB
+  (load ≈ 0.4).
+- **`vmware-certificateauthority` and `vmware-topologysvc` were stopped.** Started both. Both
+  were running on 2026-09-06; when or why they stopped is unknown.
+- **A certificate problem created by the troubleshooting itself.** Adding esxi01 *by IP*, as a
+  test, made VMCA reissue its certificate with only `IP Address:10.10.10.10` in the SAN.
+  Re-adding by hostname then failed TLS name checking (`SSLVerifyException: Host name does
+  not match the subject name(s) in certificate`). Fixed with a `certool`-issued VMCA
+  certificate that carried a DNS SAN. The successful add later replaced it with VMCA's
+  standard host certificate.
+- **The 2026-09-14 DNS change had no effect.** Appending `DNS=10.10.10.2` to
+  `/etc/systemd/resolved.conf` seemed to fix default lookups, but `nslookup` asks 127.0.0.1
+  first either way; most likely the negative cache entry had just expired. The 2026-09-06
+  entry had already recorded the real signature (NXDOMAIN from 127.0.0.1) and ruled it out.

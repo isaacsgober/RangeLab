@@ -6,24 +6,42 @@ were diagnosed **and fixed** live in [[Troubleshooting]].
 
 ---
 
-## vCenter cannot add esxi01 as a managed host
+## dnsmasqhost answers NXDOMAIN to AAAA queries for lab hosts
 
-**Status:** deferred. Nothing on the checklist needs vCenter to manage the host; VMs are
-created through the ESXi host web UI.
+**Status:** open. Worked around on [[vcenter01]] only.
 
-The "Add standalone host" task fails at ~80%:
-`Unable to push CA certificates and CRLs to host esxi01.rangelab.local` (a retry returned a 503).
+For every lab name checked (`esxi01`, `vcenter01`, `ansible01`), [[dnsmasqhost]] answers A
+queries correctly but answers AAAA queries with `rcode = NXDOMAIN`. The correct reply is
+`NOERROR` with no answer. NXDOMAIN means the name doesn't exist at all, so a caching resolver
+that stores it will refuse the A record as well. That is what broke vCenter's add-host
+([[Troubleshooting]] → 2026-09-15).
 
-Ruled out: time skew (~3 s), certificate services (`vmcad`/`vmafdd`/`vmware-certificateauthority`
-all running), disk exhaustion on esxi01, and a DNS inconsistency that proved to be on a
-resolution path VCSA doesn't actually use.
+vcenter01 is protected by local `host-record` entries. Other clients are not: any client that
+caches negative answers and looks up AAAA can hit the same failure.
 
-**Leading hypothesis (unconfirmed):** esxi01 still presents its install-time self-signed
-certificate with CN `localhost.localdomain`. The FQDN was configured correctly later the
-same day but the certificate was never regenerated. Candidate fix: regenerate the host
-certificate (`/sbin/generate-certificates` or the host UI), restart `hostd`/`vpxa`, retry.
+Check: `nslookup -debug -type=AAAA esxi01.rangelab.local. 10.10.10.2` — read `rcode`.
+Next step: find how dnsmasqhost defines the lab records, fix it there, then decide whether the
+vcenter01 workaround is still needed.
 
-Full diagnosis: [[Troubleshooting]] → "2026-09-06 — vCenter unable to add ESXi host".
+---
+
+## vcenter01 resolver changes are hand-edited and not durable
+
+**Status:** accepted for now. Re-verify after any VAMI network change, reboot, or upgrade.
+
+The add-host fix lives in appliance files that VCSA's own tooling doesn't manage:
+
+- `/etc/dnsmasq.conf`: `host-record` entries and `neg-ttl=10`. The original is saved as
+  `/etc/dnsmasq.conf.bak-rangelab`. The two `server=` lines added alongside them turned out to
+  be redundant.
+- `/etc/systemd/resolved.conf`: `DNS=10.10.10.2` / `Domains=rangelab.local`, appended
+  2026-09-14. VMware's own `DNS=127.0.0.1` appears earlier in the same `[Resolve]` section.
+  systemd appends repeated list values, so the effective list is `127.0.0.1 10.10.10.2`.
+  Harmless, but it should be collapsed to one deliberate line, or reverted since it fixed
+  nothing.
+
+If the add-host failure returns, run `nslookup esxi01.rangelab.local 127.0.0.1` on vcenter01
+first.
 
 ---
 
@@ -44,8 +62,7 @@ already flags this).
 
 The esxi01 console (DCUI) banner shows `esxi01` rather than the FQDN
 `esxi01.rangelab.local`. `esxcli system hostname get` reports the domain and FQDN correctly,
-so the configuration is right — this is display-only, no functional impact. Possibly the
-same install-time root as the certificate issue above.
+so the configuration is right — this is display-only, no functional impact.
 
 ---
 
@@ -67,3 +84,10 @@ Both `pip` and `ansible-galaxy` need an index the subnet cannot reach. Getting t
 [[ansible01]] means staging them from a connected machine — `pip download` wheels or a
 downloaded collection tarball, copied over `scp` and installed with `--no-index`. Not yet
 attempted.
+
+---
+
+## vCenter evaluation license expires 2026-11-07
+
+Administration → Licensing shows an Evaluation license. vCenter needs a real license, or the
+appliance needs rebuilding, before then.
