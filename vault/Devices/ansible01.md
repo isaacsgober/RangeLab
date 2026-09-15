@@ -80,7 +80,9 @@ This machine was cloned to create [[managed01]].
 
 `ansible-core` is installed rather than the full `ansible` package.
 
-Serves NTP to the [[VMnet10]] segment via [[chrony]] (`local stratum 10`, `allow 10.10.10.0/24`). It has no upstream, so it is the lab's undisciplined time root — see [[chrony]] for the tradeoff.
+Serves NTP to [[VMnet10]] via [[chrony]] (`allow 10.10.10.0/24`); [[managed01]], [[vcenter01]], and [[esxi01]] sync from it. Since 2026-09-15 it takes its own time from [[Precision7730]] (`server 10.10.10.1 iburst`, `makestep 1.0 -1`). See [[chrony]] and [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
+
+Starts first in [[esxi01]]'s autostart order.
 
 The `ansible` service account authenticates to managed nodes with an Ed25519 SSH key at `~ansible/.ssh/id_ed25519`. The private key stays on this host and is excluded from the repo.
 

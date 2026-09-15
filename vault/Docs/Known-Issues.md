@@ -6,46 +6,31 @@ were diagnosed **and fixed** live in [[Troubleshooting]].
 
 ---
 
-## vCenter cannot add esxi01 as a managed host
+## Suspending esxi01 costs nested VMs up to 15 minutes of wrong time
 
-**Status:** deferred. Nothing on the checklist needs vCenter to manage the host; VMs are
-created through the ESXi host web UI.
+**Status:** accepted. Prefer shutting down.
 
-The "Add standalone host" task fails at ~80%:
-`Unable to push CA certificates and CRLs to host esxi01.rangelab.local` (a retry returned a 503).
-
-Ruled out: time skew (~3 s), certificate services (`vmcad`/`vmafdd`/`vmware-certificateauthority`
-all running), disk exhaustion on esxi01, and a DNS inconsistency that proved to be on a
-resolution path VCSA doesn't actually use.
-
-**Leading hypothesis (unconfirmed):** esxi01 still presents its install-time self-signed
-certificate with CN `localhost.localdomain`. The FQDN was configured correctly later the
-same day but the certificate was never regenerated. Candidate fix: regenerate the host
-certificate (`/sbin/generate-certificates` or the host UI), restart `hostd`/`vpxa`, retry.
-
-Full diagnosis: [[Troubleshooting]] → "2026-09-06 — vCenter unable to add ESXi host".
+Suspending [[esxi01]] freezes the clocks of [[ansible01]], [[managed01]], and [[vcenter01]]. On
+resume, each one is behind by however long the suspend lasted. chrony and ntpd won't use their
+source again until the pre-suspend samples age out. After a 5.5-minute test suspend on 2026-09-15,
+the nodes recovered in stages: ansible01 after about 6.5 minutes, managed01 after about 12, and
+vcenter01 after about 15. A shutdown and boot avoids this entirely; see
+[ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
 
 ---
 
-## vcenter01 has no configured time source
+## Little headroom between Windows Time dispersion and ntpd's limit
 
-The lab now runs NTP ([[chrony]] on [[ansible01]], serving `10.10.10.0/24`), but
-[[vcenter01]] is not a client of it and has no other enforced time source. On 2026-09-06 its
-clock and esxi01's agreed within ~3 s, but nothing keeps them synced. This will matter more
-at the Active Directory / Kerberos stage.
+**Status:** open, with an optional fix.
 
-Options: point the VCSA at [[ansible01]], point it at [[esxi01]] (enable NTP there first), or
-accept the drift and document it until the AD work. See [[vCenter]] (its Dependencies note
-already flags this).
+[[esxi01]] and [[vcenter01]] run ntpd, which rejects a source whose root distance is over 1.5 s.
+[[ansible01]] passes on the dispersion it receives from [[Precision7730]]. With Windows Time
+polling every 1024 s (`MaxPollInterval = 10`), that settles near 1.1 s, leaving about 0.4 s of
+headroom. At a 64 s poll it settled at 0.35 s.
 
----
-
-## esxi01 DCUI shows the short hostname
-
-The esxi01 console (DCUI) banner shows `esxi01` rather than the FQDN
-`esxi01.rangelab.local`. `esxcli system hostname get` reports the domain and FQDN correctly,
-so the configuration is right — this is display-only, no functional impact. Possibly the
-same install-time root as the certificate issue above.
+Fix: on Precision7730, set
+`HKLM\SYSTEM\CurrentControlSet\Services\W32Time\Config\MaxPollInterval` to `6`, then restart
+Windows Time. Expect about 5 minutes of 8 s dispersion after the restart.
 
 ---
 
@@ -67,3 +52,10 @@ Both `pip` and `ansible-galaxy` need an index the subnet cannot reach. Getting t
 [[ansible01]] means staging them from a connected machine — `pip download` wheels or a
 downloaded collection tarball, copied over `scp` and installed with `--no-index`. Not yet
 attempted.
+
+---
+
+## vCenter evaluation license expires 2026-11-07
+
+Administration → Licensing shows an Evaluation license. vCenter needs a real license, or the
+appliance needs rebuilding, before then.

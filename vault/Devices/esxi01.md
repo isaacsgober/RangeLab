@@ -58,13 +58,15 @@ DNS: [[10.10.10.2]]
 Web Interface:
 https://10.10.10.10
 
+vCenter: managed by [[vcenter01]] (added 2026-09-15)
+
 ---
 
 ## Resources
 
 ### CPU
 
-8 vCPUs
+12 vCPUs
 
 ### Memory
 
@@ -101,6 +103,13 @@ Disk 2
 ---
 
 ## Notes
+
+2026-09-15:
+	Resized from 8 to 12 vCPUs in VMware Workstation.
+	Added to vCenter by FQDN once the add-host failure was resolved — see [[Troubleshooting]] (2026-09-15).
+	Autostart enabled. On boot it starts [[ansible01]], then [[managed01]], then [[vcenter01]]. On host shutdown it shuts them down in reverse order (120 s default delays; vcenter01 gets 600 s). Shut the host down from the Host Client or with Workstation's Shut Down Guest, never Power Off.
+	NTP: ntpd syncs from [[ansible01]]. ESXi's ntpd (`-g`) accepts one large correction, at startup; once running it refuses corrections over 1000 s. See [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
+	The DCUI shows `https://esxi01/` rather than the FQDN. That's expected: it prints the configured host name, which can't include the domain. See [[Troubleshooting]] (2026-09-15).
 
 ---
 
