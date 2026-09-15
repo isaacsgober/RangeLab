@@ -323,8 +323,9 @@ It never forwards them, so it never picks up dnsmasqhost's bad AAAA answer. The 
 Then removed the stale `DISCONNECTED` host object and added esxi01 by FQDN with root
 credentials. (Reconnecting the old object failed with `vim.fault.InvalidLogin`.)
 
-This is a workaround on one client. The source, dnsmasqhost's AAAA answers, is still open —
-see [[Known-Issues]].
+This was a workaround on one client. The source was fixed on dnsmasqhost later the same day,
+and this workaround was then removed. See "dnsmasqhost answered NXDOMAIN to AAAA queries"
+below.
 
 **Verification:**
 ```
@@ -333,7 +334,8 @@ POST /api/vcenter/host                     → HTTP 201 in 5.37 s   (previously 
 host-5017  esxi01.rangelab.local  CONNECTED   stable at t+0 / +45 / +90 s
 ```
 vCenter now inventories `vcenter01`, `ansible01`, `managed01`, and datastores
-`datastore01-01` and `datastore01-02`. Not yet tested across a vcenter01 reboot.
+`datastore01-01` and `datastore01-02`. The workaround survived a vcenter01 reboot before it was
+removed.
 
 **Notes:**
 The same investigation turned up four other problems. Each was real, but none was the
@@ -354,6 +356,7 @@ blocker: the add kept failing the same way after each fix, until the dnsmasq cha
   `/etc/systemd/resolved.conf` seemed to fix default lookups, but `nslookup` asks 127.0.0.1
   first either way; most likely the negative cache entry had just expired. The 2026-09-06
   entry had already recorded the real signature (NXDOMAIN from 127.0.0.1) and ruled it out.
+  The lines were removed on 2026-09-15, after the source fix below.
 
 ---
 
@@ -432,3 +435,108 @@ then selected the host and stepped +13768.6 s, and its clients followed.
 - **SSH drops during the suspend test** were OpenSSH 9.9's per-source penalties (`drop connection
   ... penalty: exceeded LoginGraceTime`). Connections that could not finish logging in while esxi01
   was frozen counted against this host's address, and sshd refused it until the penalty expired.
+
+---
+
+### 2026-09-15 — dnsmasqhost answered NXDOMAIN to AAAA queries
+
+Source of the vCenter add-host failure above. Tracked as Linear ISA-6.
+
+**System(s) affected:**
+[[dnsmasqhost]] and every lab DNS client; [[vcenter01]] is where it broke something.
+
+**Symptom:**
+For every lab name, dnsmasqhost answered A queries with the right address but answered AAAA
+queries with `NXDOMAIN`, meaning "this name does not exist". vCenter's embedded dnsmasq cached
+that and then refused esxi01's A record too, which stalled add-host (entry above).
+
+**Diagnosis steps:**
+All lab names are defined in `/etc/dnsmasq.conf` (dnsmasq 2.90). `/etc/dnsmasq.d/` is empty and
+`/etc/hosts` is stock.
+```
+domain=rangelab.local
+local=/rangelab.local/
+local=/10.10.10.in-addr.arpa/
+address=/esxi01.rangelab.local/10.10.10.10
+ptr-record=10.10.10.10.in-addr.arpa,esxi01.rangelab.local
+# ...one address= / ptr-record= pair per host
+```
+Queried more than A and AAAA with `dig @10.10.10.2`:
+```
+esxi01.rangelab.local       A     NOERROR   10.10.10.10
+esxi01.rangelab.local       AAAA  NXDOMAIN
+esxi01.rangelab.local       MX    NXDOMAIN
+esxi01.rangelab.local       TXT   NXDOMAIN
+foo.esxi01.rangelab.local   A     NOERROR   10.10.10.10
+nosuch.rangelab.local       A     NXDOMAIN
+dig -x 10.10.10.10                NOERROR   esxi01.rangelab.local.
+```
+Only A queries and PTR lookups worked, and a subdomain that doesn't exist resolved to esxi01.
+Both point at `address=`. The manual on the server (`zcat /usr/share/man/man8/dnsmasq.8.gz`)
+describes `--address` as supplying an address for any host in the given domains. It also notes
+a change in 2.86 for queries of other record types: "From 2.86, the query is sent upstream."
+
+**Root cause:**
+`address=/esxi01.rangelab.local/10.10.10.10` is a rule for a domain, not a record for a host. It
+answers A queries for that name and every name under it, and nothing else. Since 2.86, a query of
+any other type skips the rule and is handled by the next rule that matches. Here that was
+`local=/rangelab.local/`, which answers only from local data and has no upstream, so it replied
+NXDOMAIN. The manual says only that such queries go upstream; the NXDOMAIN is what `local=` was
+observed to do with them.
+
+**Fix:**
+On dnsmasqhost, with the original saved as `/etc/dnsmasq.conf.bak-rangelab`, replaced the ten
+`address=` / `ptr-record=` lines with one line per host:
+```
+host-record=dnsmasqhost.rangelab.local,10.10.10.2
+host-record=esxi01.rangelab.local,10.10.10.10
+host-record=vcenter01.rangelab.local,10.10.10.15
+host-record=ansible01.rangelab.local,10.10.10.20
+host-record=managed01.rangelab.local,10.10.10.21
+```
+```
+dnsmasq --test              # syntax check OK
+systemctl restart dnsmasq
+```
+`host-record` defines the name itself, with its A record and matching PTR. A query for a type the
+name doesn't have gets `NOERROR` with no answer.
+
+Then, on vcenter01, restored the stock `/etc/dnsmasq.conf` from `.bak-rangelab` and restarted
+dnsmasq. The workaround is kept as `/etc/dnsmasq.conf.workaround-rangelab`. Removing it was the
+only way to show that the source fix works on its own.
+
+**Verification:**
+From dnsmasqhost (`dig @10.10.10.2`), for all five lab names:
+```
+A       → NOERROR, the host's address        AAAA → NOERROR, no answer
+MX, TXT → NOERROR, no answer                 PTR  → one record each
+foo.esxi01.rangelab.local A → NXDOMAIN   (the subdomain match is gone)
+nosuch.rangelab.local A     → NXDOMAIN   (unknown names still fail correctly)
+```
+From Precision7730, `nslookup -debug -type=AAAA <name>.rangelab.local. 10.10.10.2` showed
+`rcode = NOERROR` for all five names.
+
+On vcenter01, with the stock embedded dnsmasq (`neg-ttl=3600`), three rounds of AAAA then A:
+```
+dig @127.0.0.1 esxi01.rangelab.local AAAA   → NOERROR, no answer
+dig @127.0.0.1 esxi01.rangelab.local A      → 10.10.10.10
+dnsmasq.log: cached esxi01.rangelab.local is NODATA-IPv6
+curl https://esxi01.rangelab.local/ through the Envoy proxy → HTTP 200 in 0.04 s
+```
+Over the next five minutes (19:22–19:27Z), vCenter's API kept showing
+`esxi01.rangelab.local CONNECTED`. The host gateway logged 100 requests to esxi01 with no 503s.
+The embedded dnsmasq handled 3,942 queries and cached 67 `NODATA-IPv6` answers, with no NXDOMAIN
+for any lab host.
+
+**Notes:**
+- A cached `NODATA-IPv6` answer only says "no IPv6 address". It doesn't affect the A lookup, so the
+  stock `neg-ttl=3600` is harmless now.
+- The manual's own way to restore the old behavior is an extra `local=/<name>/` line for each
+  `address=` name. `host-record` was chosen instead because it is a real host record and doesn't
+  match subdomains.
+- The `server=` lines and `neg-ttl=10` on vcenter01 went away with the rest of the workaround.
+- Also removed the 2026-09-14 `DNS=10.10.10.2` / `Domains=rangelab.local` lines from vcenter01's
+  `/etc/systemd/resolved.conf` (backup `.bak-rangelab`). VAMI already sets both on the
+  interface, so `resolvectl status` and `/etc/resolv.conf` still list `10.10.10.2` and
+  `search rangelab.local`. `getent`, `resolvectl query`, `dig @127.0.0.1`, and the Envoy proxy
+  all still resolved esxi01 afterward. vcenter01's DNS configuration is now entirely stock.
