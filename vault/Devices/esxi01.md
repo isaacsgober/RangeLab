@@ -58,13 +58,15 @@ DNS: [[10.10.10.2]]
 Web Interface:
 https://10.10.10.10
 
+vCenter: managed by [[vcenter01]] (added 2026-09-15)
+
 ---
 
 ## Resources
 
 ### CPU
 
-8 vCPUs
+12 vCPUs
 
 ### Memory
 
@@ -101,6 +103,10 @@ Disk 2
 ---
 
 ## Notes
+
+2026-09-15:
+	Resized from 8 to 12 vCPUs in VMware Workstation.
+	Added to vCenter by FQDN once the add-host failure was resolved — see [[Troubleshooting]] (2026-09-15).
 
 ---
 

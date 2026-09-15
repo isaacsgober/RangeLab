@@ -62,7 +62,11 @@ VAMI: https://vcenter01.rangelab.local:5480
 
 ### vCPU
 
+6 vCPU
+
 ### Memory
+
+16 GB
 
 ### Storage
 #### Datastore
@@ -80,6 +84,11 @@ VMware [[vCenter]]
 
 2026-08-04:
 	Temporary gateway and DNS settings were used during deployment; lab does not yet contain a router or internal DNS server.
+
+2026-09-15:
+	Resized to 6 vCPU and 16 GB. At 2 vCPU the appliance was CPU-starved (15-minute load average 13.46).
+	Now manages [[esxi01]].
+	The appliance's embedded dnsmasq (`127.0.0.1`) has hand-edited `host-record` entries and `neg-ttl=10` that VCSA's own tooling doesn't manage — see [[Troubleshooting]] (2026-09-15) and [[Known-Issues]].
 
 ---
 
