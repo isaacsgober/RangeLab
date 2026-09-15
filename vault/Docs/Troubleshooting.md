@@ -116,7 +116,7 @@ certificate generated at ESXi install time, before the host's FQDN was configure
 
 **Root cause:**
 UNCONFIRMED: The host was presenting a default certificate issued for `localhost.localdomain` rather than `esxi01.rangelab.local`, which vCenter could not reconcile with the 
-hostname it was connecting to. The DNS inconsistency was investigated but appears unrelated, as resolution succeeds via the path systemd-resolved actually uses.
+hostname it was connecting to. ~~The DNS inconsistency was investigated but appears unrelated, as resolution succeeds via the path systemd-resolved actually uses.~~
 
 **Fix:**
 Deferred; not a priority at this point in the project.
