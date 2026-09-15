@@ -426,8 +426,7 @@ then selected the host and stepped +13768.6 s, and its clients followed.
 **Notes:**
 - **Suspend test.** A 5.5-minute suspend of esxi01 brought the nested nodes back 330 s behind.
   Recovery took about 6.5 minutes for ansible01, 12 for managed01, and 15 for vcenter01. chrony
-  and ntpd distrust a source until the pre-suspend samples age out (`Jitter of 10.10.10.1 exceeds
-  maxjitter of 1.000 seconds`). dnsmasqhost was never suspended, but following ansible01 pulled
+  and ntpd distrust a source until the pre-suspend samples age out (`Jitter of 10.10.10.1 exceeds maxjitter of 1.000 seconds`).  dnsmasqhost was never suspended, but following ansible01 pulled
   its clock back 330 s, which is why it now syncs from the host directly. That cost is accepted for
   suspends, and shutting down is preferred; see [[Known-Issues]].
 - **github.com's `Date` header is not a clock reference.** It is served from a CDN cache and once
@@ -603,3 +602,85 @@ sent no DNS queries for the host.
   `https://esxi01.rangelab.local/` or the IP.
 - The ESXi Host Client, vCenter, and the host certificate all use the FQDN. The short DCUI URL
   affects nothing else.
+
+---
+
+### 2026-09-15 — Root SSH to vcenter01 rejected with the correct password
+
+Happened 2026-09-14; diagnosed 2026-09-15 from vcenter01's journal. All times are UTC.
+
+**System(s) affected:**
+[[vcenter01]]
+
+**Symptom:**
+On 2026-09-14, `ssh root@vcenter01.rangelab.local` rejected a password that worked at the VM
+console a few minutes later. The work continued from the console. By the next night SSH logins
+worked again, and nothing had been changed.
+
+**Diagnosis steps:**
+First suspected OpenSSH per-source penalties, which had dropped connections to ansible01 and
+managed01 during the 2026-09-15 suspend test. Ruled out: vcenter01 runs OpenSSH 9.3 (`sshd -V`),
+and per-source penalties arrived in 9.8. ansible01 runs 9.9p1, with
+`persourcepenalties ... authfail:5 noauth:1 grace-exceeded:10`.
+
+Read sshd's log for that evening (`journalctl -u sshd --since "2026-09-14 12:00"`):
+```
+2026-09-14 18:02:12  pam_mgmt_cli(sshd:auth): auth script returned error (251): Error getting authentication cookie from applmgmt service.
+2026-09-14 18:02:12  pam_unix(sshd:auth): authentication failure; ... rhost=10.10.10.1  user=root
+2026-09-14 18:02:17  error: PAM: Authentication failure for root from 10.10.10.1
+2026-09-14 18:02:59  error: PAM: Authentication failure for root from 10.10.10.1
+2026-09-14 18:04:04  error: PAM: Authentication failure for root from 10.10.10.1
+2026-09-15 04:46:02  Accepted keyboard-interactive/pam for root from 10.10.10.1
+```
+Only the first attempt logged a `pam_unix` failure. The next two failed without one, so the
+password check itself didn't fail; something else did.
+
+Searched the full journal for the same window for authentication and lockout events:
+```
+17:59:44  python[10847]: pam_unix(passwd:auth): authentication failure; ... user=root
+18:01:54  python[10847]: pam_unix(passwd:auth): authentication failure; ... user=root
+18:01:58  python[10847]: pam_unix(passwd:auth): authentication failure; ... user=root
+18:01:58  python[10847]: pam_faillock(passwd:auth): Consecutive login failures for user root account temporarily locked
+18:07:29  login[77520]: ROOT LOGIN  on '/dev/tty1'
+```
+PID 10847 is `applmgmt`, the appliance management service behind the VAMI (`applmgmt.log`
+entries carry the same PID).
+
+Read the lockout policy and the PAM stacks:
+```
+/etc/security/faillock.conf          deny = 3, even_deny_root, root_unlock_time = 300, fail_interval = 900
+/etc/pam.d/system-auth               pam_faillock preauth → pam_unix → pam_faillock authfail
+/etc/pam.d/sshd, /etc/pam.d/login    pam_mgmt_cli (appliance ticket) first, then include system-auth
+```
+
+**Root cause:**
+`pam_faillock` locked root. Three failed root password checks through `applmgmt`, starting at
+17:59:44, reached the appliance's limit (`deny = 3` within 15 minutes). `even_deny_root` applies
+that limit to root, with a 5-minute lock. The SSH attempts at 18:02–18:04 arrived during the lock.
+`pam_faillock preauth` refuses a locked account whatever password is typed, which is why the later
+attempts failed with no `pam_unix` failure. The appliance's ticket module (`pam_mgmt_cli`) errored
+on every SSH attempt, so sshd fell through to the locked `system-auth` path each time.
+
+The console login at 18:07:29 succeeded. The logs don't show whether the lock had lapsed by then,
+or whether the console took the `pam_mgmt_cli` path, which runs before `pam_faillock` in
+`/etc/pam.d/login` and logged no error that time. They also don't show where the first three bad
+passwords were typed. Those checks went through `applmgmt`, which serves both the VAMI login page
+and the appliance's own SSH ticket check.
+
+**Fix:**
+None needed. The lock expired on its own, which is why SSH seemed to start working by itself. To
+check for or clear a lock on the appliance:
+```
+faillock --user root           # recent failures; 3 within 15 minutes means locked
+faillock --user root --reset   # clear them now instead of waiting
+```
+
+**Verification:**
+On 2026-09-15, `faillock --user root` shows 0 failures, and root SSH logins are accepted.
+
+**Notes:**
+- On a hardened Linux host, "the correct password is rejected" often means a lockout, not a typo.
+  Check `faillock` and the journal's `pam_faillock` lines before retrying: while the lock lasts, no
+  password gets through.
+- Check the OpenSSH version before blaming per-source penalties (`sshd -V`; they need 9.8 or
+  later). They were the cause on the Rocky nodes but couldn't be on vcenter01.

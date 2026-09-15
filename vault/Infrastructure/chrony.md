@@ -92,6 +92,7 @@ distrust their source until the pre-suspend samples age out ("Jitter ... exceeds
 
 ## Related
 
+- [[NTP Hierarchy]]
 - [[ansible01]]
 - [[managed01]]
 - [[dnsmasqhost]]

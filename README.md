@@ -36,7 +36,7 @@ topology, and [`vault/Architecture/`](vault/Architecture/) for the naming conven
 ## Repository structure
 
 - `vault/` — the Obsidian vault (open this folder in Obsidian):
-  - `Architecture/` — naming convention, IP index, VM layout
+  - `Architecture/` — naming convention, IP index, VM layout, NTP hierarchy, decision records (ADRs)
   - `Devices/` — one note per physical/virtual host, its specs and management access
   - `Infrastructure/` — one note per service/platform (ESXi, vCenter, dnsmasq, datastores)
   - `Network/` — network definitions and the topology canvas
@@ -46,11 +46,12 @@ topology, and [`vault/Architecture/`](vault/Architecture/) for the naming conven
   - `Templates/` — Obsidian note templates used to keep entries consistent
   - `Attachments/` — evidence screenshots
 - `Ansible/` — control-node inventory, variables, and playbook (Phase 3)
-- `Scripts/` — the Python utility (Phase 4)
+- `Scripts/` — Python utilities: a connectivity health check (Phase 4) and a read-only vCenter VM
+  inventory (Phase 5)
 
 ## Status
 
-Current phase: 5 - read-only API exercise
+Current phase: 6 - packaging for review
 
 | Phase | Description                         | Status            |
 | ----- | ----------------------------------- | ----------------- |
@@ -59,8 +60,8 @@ Current phase: 5 - read-only API exercise
 | 2     | Ansible control + managed nodes     | Complete          |
 | 3     | Ansible configuration               | One task deferred |
 | 4     | Bash/Python utility                 | Complete          |
-| 5     | Read-only API exercise              | In-Progress       |
-| 6     | Packaging for review                |                   |
+| 5     | Read-only API exercise              | Complete          |
+| 6     | Packaging for review                | In-Progress       |
 
 ## Hardware / Software
 
