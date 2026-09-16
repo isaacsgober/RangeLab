@@ -1,0 +1,328 @@
+# Build Sequence
+
+How to build Range Lab from nothing. Written during the 2026-09-16 rebuild, one stage at a time,
+from what actually worked. Design and reasoning: [[Rebuild-Plan]]. The lab this replaced is
+recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
+
+**Conventions in this document**
+
+- Commands are shown exactly as typed. Output shown is the real output, trimmed.
+- Every stage ends with checks. Don't start the next stage until they pass.
+- Values (addresses, names, sizes) come from [[IP Index]] and [[Naming Convention]].
+
+## What you need before starting
+
+| Item | Value |
+| ---- | ----- |
+| Host | Windows 11 with VMware Workstation 26 |
+| Networks | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
+| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 DVD, VMware ESXi 9.1, VCSA 9.1 |
+| Repository | This repo, cloned on the host |
+
+---
+
+# Stage 1 — vyos01, the lab router
+
+vyos01 is the lab's gateway. It gives every other node a route to the internet, and it forwards
+DNS queries that infra01 can't answer itself. It has to exist first: every later node is installed
+with `10.10.10.3` as its default gateway.
+
+## 1.1 Create the VM
+
+In Workstation: **File → New Virtual Machine → Custom**.
+
+| Setting | Value | Why |
+| ------- | ----- | --- |
+| Guest OS | Linux → Debian 12.x 64-bit | VyOS 1.5 is built on Debian 12 |
+| Name | `vyos01` | [[Naming Convention]] |
+| Location | `Documents\Virtual Machines\vyos01` | One folder per VM |
+| Firmware | UEFI | Same as every other node in the lab |
+| Processors | 1 | Routing this lab needs almost nothing |
+| Memory | 4096 MB | VyOS 1.5's documented minimum |
+| Network adapter 1 | Custom → **VMnet8** | The outside (WAN) interface |
+| Network adapter 2 | Custom → **VMnet10** | The lab (LAN) interface — add it in VM Settings after creation |
+| Disk | 20 GB, single file | Minimum is 10 GB |
+| CD/DVD | VyOS Stream ISO, connected at power on | Install media |
+
+Then, with the VM powered off, add one line to `vyos01.vmx`:
+
+```
+rtc.diffFromUTC = "0"
+```
+
+Workstation sets a VM's virtual hardware clock to the host's *local* time by default. Linux expects
+that clock to be UTC, so without this line the guest boots hours off. This is what made
+dnsmasqhost boot five hours in the past in the old lab.
+
+**Adapter order matters.** Adapter 1 becomes `eth0` and adapter 2 becomes `eth1`. Check it after
+first boot (1.3) before trusting it.
+
+## 1.2 Install VyOS
+
+Boot the VM from the ISO. It comes up as a live system.
+
+```
+login: vyos
+password: vyos
+```
+
+```
+install image
+```
+
+Answer the prompts: continue, auto partitioning, the virtual disk, default sizes, a new password
+for the `vyos` user, and the default boot console. When it finishes:
+
+```
+poweroff
+```
+
+Disconnect the ISO in VM Settings, then power the VM back on.
+
+## 1.3 Check which interface is which
+
+```
+show interfaces
+```
+
+Compare the MAC addresses with VM Settings → Network Adapter → Advanced. `eth0` must be the
+VMnet8 adapter and `eth1` the VMnet10 adapter. If they're swapped, swap the addresses in 1.4.
+
+## 1.4 Configure
+
+```
+configure
+```
+
+Identity:
+
+```
+set system host-name vyos01
+set system domain-name rangelab.internal
+```
+
+Interfaces:
+
+```
+set interfaces ethernet eth0 address 192.168.132.3/24
+set interfaces ethernet eth0 description 'WAN - VMnet8 (Workstation NAT)'
+set interfaces ethernet eth1 address 10.10.10.3/24
+set interfaces ethernet eth1 description 'LAN - VMnet10'
+```
+
+`192.168.132.3` is static and deliberately below Workstation's DHCP range (`.128–.254`), so the
+router's address can never move.
+
+Route out and a resolver for the router itself:
+
+```
+set protocols static route 0.0.0.0/0 next-hop 192.168.132.2
+set system name-server 192.168.132.2
+```
+
+`192.168.132.2` is Workstation's NAT service: both the gateway off VMnet8 and a DNS proxy.
+
+Source NAT, so lab addresses can reach the internet:
+
+```
+set nat source rule 100 description 'Lab to internet'
+set nat source rule 100 outbound-interface name eth0
+set nat source rule 100 source address 10.10.10.0/24
+set nat source rule 100 translation address masquerade
+```
+
+Traffic leaving `eth0` from `10.10.10.0/24` gets rewritten to the router's own WAN address.
+`masquerade` means "use whatever address is on the outgoing interface".
+
+DNS forwarding, for infra01 to send non-lab queries to:
+
+```
+set service dns forwarding listen-address 10.10.10.3
+set service dns forwarding allow-from 10.10.10.0/24
+set service dns forwarding name-server 192.168.132.2
+```
+
+`allow-from` keeps this from being an open resolver. `listen-address` keeps it off the WAN side.
+
+Management access:
+
+```
+set service ssh listen-address 10.10.10.3
+```
+
+Review, activate, and persist:
+
+```
+compare
+commit
+save
+```
+
+`compare` shows what you're about to change. `commit` makes it live. `save` writes it to
+`/config/config.boot` so it survives a reboot — commit alone does not.
+
+## 1.5 Checks
+
+```
+show interfaces
+show ip route
+ping 192.168.132.2 count 3
+ping 1.1.1.1 count 3
+ping vyos.net count 3
+show nat source rules
+```
+
+Expected: both interfaces up with the addresses above; a default route via `192.168.132.2`; all
+three pings succeed (the last one proves DNS works); one NAT rule listed.
+
+From the Windows host, confirm management access:
+
+```
+ssh vyos@10.10.10.3
+```
+
+## 1.6 Record it
+
+```
+show configuration commands
+```
+
+Save that output to `network/vyos01.config` in the repo, with the
+`set system login user vyos authentication encrypted-password` line removed — it contains a
+password hash.
+
+**Not configured yet:** vyos01 has no firewall policy. Its WAN side sits on Workstation's private
+NAT network, so it isn't exposed to the internet directly. Tracked as a follow-up.
+
+---
+
+# Stage 2 — infra01 and ansible01
+
+Two Rocky Linux VMs, installed from the DVD. infra01 will serve DNS and NTP to the lab; ansible01
+is the control node that configures everything from here on. Neither is configured by hand beyond
+what the installer asks: Stage 3 does the rest with Ansible.
+
+Install infra01 first, then ansible01. Both are Workstation guests, so neither depends on esxi01.
+
+## 2.1 Create the VMs
+
+**File → New Virtual Machine → Custom**, with the same choices as vyos01 except:
+
+| Setting | infra01 | ansible01 |
+| ------- | ------- | --------- |
+| Guest OS | Linux → Rocky Linux 64-bit | Linux → Rocky Linux 64-bit |
+| Firmware | UEFI | UEFI |
+| Processors | 1 | 2 |
+| Memory | 2048 MB | 4096 MB |
+| Disk | 20 GB, single file | 30 GB, single file |
+| Network adapter | Custom → **VMnet10** | Custom → **VMnet10** |
+| CD/DVD | `Rocky-10.2-x86_64-dvd1.iso`, connected at power on | same |
+
+With each VM powered off, add to its `.vmx`:
+
+```
+rtc.diffFromUTC = "0"
+```
+
+## 2.2 Rocky installer settings
+
+Identical for both machines except the highlighted rows.
+
+| Installer screen | Setting |
+| ---------------- | ------- |
+| Language / Keyboard | English (US) |
+| Time & Date | Region/City: **Etc / Coordinated Universal Time** |
+| Software Selection | **Minimal Install** |
+| Installation Destination | The virtual disk, automatic partitioning |
+| Network & Host Name → Host Name | **`infra01.rangelab.internal`** / **`ansible01.rangelab.internal`** |
+| … → Configure → IPv4 Settings | Method **Manual** |
+| … → Address | **`10.10.10.2`** / **`10.10.10.20`**, netmask `255.255.255.0`, gateway `10.10.10.3` |
+| … → DNS servers | `10.10.10.3` |
+| … → Search domains | `rangelab.internal` |
+| … → General | "Connect automatically with priority" checked |
+| Root Account | **Lock root account** |
+| User Creation | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
+
+Begin installation, then reboot and disconnect the ISO.
+
+**Why DNS points at the router here:** infra01 isn't serving DNS yet — it's the machine being
+installed. `10.10.10.3` forwards to the internet so `dnf` works immediately. Stage 3 switches both
+nodes to infra01 once dnsmasq is running.
+
+## 2.3 Checks after first boot
+
+On each node, logged in as `labadmin`:
+
+```
+ip -br addr
+ip route
+timedatectl
+getenforce
+ping -c3 10.10.10.3
+sudo dnf makecache
+```
+
+Expected: the static address; a default route via `10.10.10.3`; the clock in UTC with "RTC in local
+TZ: no"; SELinux `Enforcing`; the gateway replies; and `dnf` reaches the Rocky mirrors.
+
+## 2.4 Prepare ansible01 as the control node
+
+Install the tools:
+
+```
+sudo dnf -y install ansible-core git
+```
+
+Create the automation account (ADR-0002) and give it passwordless sudo:
+
+```
+sudo useradd --create-home --shell /bin/bash ansible
+printf 'ansible ALL=(ALL) NOPASSWD: ALL\n' | sudo tee /etc/sudoers.d/ansible
+sudo chmod 0440 /etc/sudoers.d/ansible
+sudo visudo -c
+```
+
+`visudo -c` checks every sudoers file before you rely on it. A malformed drop-in can lock out sudo
+entirely.
+
+Generate the key this account will use to reach every other node:
+
+```
+sudo -u ansible ssh-keygen -t ed25519 -N '' -C 'ansible@ansible01' -f /home/ansible/.ssh/id_ed25519
+sudo -u ansible cat /home/ansible/.ssh/id_ed25519.pub
+```
+
+It has no passphrase so playbooks can run unattended, and the private key never leaves this host —
+the tradeoff recorded in ADR-0002. Keep the public key handy; Stage 3's bootstrap play installs it
+on the other nodes.
+
+Clone the repository (public, so no credentials):
+
+```
+sudo -u ansible git clone https://github.com/isaacsgober/RangeLab.git /home/ansible/RangeLab
+```
+
+Add the collection the playbooks need, and the linters:
+
+```
+sudo -u ansible ansible-galaxy collection install ansible.posix
+sudo -u ansible python3 -m venv /home/ansible/.venvs/lint
+sudo -u ansible /home/ansible/.venvs/lint/bin/pip install ansible-lint yamllint
+```
+
+The linters go in a virtual environment so `pip` never writes into the system Python that `dnf`
+owns.
+
+## 2.5 Checks
+
+```
+ansible --version
+sudo -u ansible ansible-galaxy collection list | grep posix
+sudo -u ansible /home/ansible/.venvs/lint/bin/ansible-lint --version
+sudo -u ansible git -C /home/ansible/RangeLab log --oneline -1
+```
+
+Expected: ansible-core reports its version and config file; `ansible.posix` is listed with its
+version; `ansible-lint` reports a version; the clone's latest commit matches GitHub.
+
+Record the installed versions in the device note — they pin what this build was tested with.
