@@ -1,0 +1,16 @@
+##### /api/vcenter/host
+[{"host":"host-5017","name":"esxi01.rangelab.local","connection_state":"CONNECTED","power_state":"POWERED_ON","host_uuid":"2e5f4d56-8140-fe04-e662-4eb1c9b7092d"}]
+##### /api/vcenter/vm
+[{"memory_size_MiB":16384,"vm":"vm-5023","name":"vcenter01","power_state":"POWERED_ON","cpu_count":6},{"memory_size_MiB":2048,"vm":"vm-5024","name":"ansible01","power_state":"POWERED_ON","cpu_count":2},{"memory_size_MiB":2048,"vm":"vm-5025","name":"managed01","power_state":"POWERED_ON","cpu_count":2}]
+##### /api/vcenter/datastore
+[{"datastore":"datastore-5020","name":"datastore01-01","type":"VMFS","free_space":13249806336,"capacity":14763950080},{"datastore":"datastore-5021","name":"datastore01-02","type":"VMFS","free_space":150985506816,"capacity":240249733120}]
+##### /api/vcenter/datacenter
+[{"name":"Datacenter01","datacenter":"datacenter-2019"}]
+##### /api/appliance/system/version
+{"summary":"Patch for VMware vCenter Server 9.1","install_time":"2026-08-09T06:22:37.107Z","product":"VMware vCenter Server","build":"25573614","name":"9.1.0.0200","releasedate":"July 09, 2026","type":"vCenter Server with an embedded Platform Services Controller","version":"9.1.0.0200"}
+##### /api/appliance/ntp
+["ansible01.rangelab.local"]
+##### /api/appliance/networking/dns/servers
+{"mode":"is_static","servers":["10.10.10.2"]}
+##### /api/appliance/timesync
+"NTP"

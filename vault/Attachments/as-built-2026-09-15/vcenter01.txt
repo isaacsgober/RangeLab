@@ -1,0 +1,142 @@
+root@vcenter01 [ ~ ]# echo "##### os"; grep -E "^(NAME|VERSION)=" /etc/os-release; echo "##### version"; vpxd -v 2>/dev/null; echo "##### ip"; ip -br addr; echo "##### route"; ip route; echo "##### resolv.conf"; cat /etc/resolv.conf; echo "##### resolved.conf"; grep -vE "^\s*(#|$)" /etc/systemd/resolved.conf; echo "##### embedded dnsmasq"; grep -vE "^\s*(#|$)" /etc/dnsmasq.conf; echo "##### hosts"; grep -vE "^\s*#" /etc/hosts; echo "##### ntp.conf"; grep -vE "^\s*(#|$)" /etc/ntp.conf; echo "##### ntpq"; ntpq -pn | head -5; echo "##### services"; service-control --status 2>&1 | tr " " "\n" | head -60; echo "##### disk"; df -h | grep -vE "tmpfs|devtmpfs" | head -12; echo "##### uptime"; uptime; echo "##### root aging"; chage -l root | head -4; echo "##### faillock"; faillock --user root | head -3
+##### os
+NAME="VMware Photon OS"
+VERSION="5.0"
+##### version
+VMware VirtualCenter 9.1.0 build-25573614
+##### ip
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eth0             UP             10.10.10.15/24 
+##### route
+default via 10.10.10.1 dev eth0 proto static 
+10.10.10.0/24 dev eth0 proto kernel scope link src 10.10.10.15 
+##### resolv.conf
+# This is /run/systemd/resolve/resolv.conf managed by man:systemd-resolved(8).
+# Do not edit.
+#
+# This file might be symlinked as /etc/resolv.conf. If you're looking at
+# /etc/resolv.conf and seeing this text, you have followed the symlink.
+#
+# This is a dynamic resolv.conf file for connecting local clients directly to
+# all known uplink DNS servers. This file lists all configured search domains.
+#
+# Third party programs should typically not access this file directly, but only
+# through the symlink at /etc/resolv.conf. To manage man:resolv.conf(5) in a
+# different way, replace this symlink by a static file or a different symlink.
+#
+# See man:systemd-resolved.service(8) for details about the supported modes of
+# operation for /etc/resolv.conf.
+
+nameserver 127.0.0.1
+nameserver 10.10.10.2
+search rangelab.local
+##### resolved.conf
+[Resolve]
+DNS=127.0.0.1 
+FallbackDNS=
+DNSSEC=no
+DNSOverTLS=no
+MulticastDNS=false
+LLMNR=false
+##### embedded dnsmasq
+listen-address=127.0.0.1
+bind-interfaces
+user=dnsmasq
+group=dnsmasq
+no-hosts
+log-queries
+log-facility=/var/log/vmware/dnsmasq.log
+domain-needed
+dns-forward-max=150
+cache-size=8192
+neg-ttl=3600
+##### hosts
+
+127.0.0.1  vcenter01.rangelab.local vcenter01 localhost
+::1  vcenter01.rangelab.local vcenter01 localhost ipv6-localhost ipv6-loopback
+##### ntp.conf
+tinker panic 0
+restrict default kod nomodify notrap nopeer
+restrict 127.0.0.1
+restrict -6 ::1
+driftfile /var/lib/ntp/drift/ntp.drift
+server ansible01.rangelab.local
+##### ntpq
+     remote           refid      st t when poll reach   delay   offset  jitter
+==============================================================================
+ 10.10.10.20     .STEP.          16 u   81   64    0    0.000   +0.000   0.000
+##### services
+Running:
+
+applmgmt
+fim-agent
+lookupsvc
+lwsmd
+pschealth
+vc-ws1a-broker
+vlcm
+vmafdd
+vmcad
+vmdird
+vmware-analytics
+vmware-certificateauthority
+vmware-certificatemanagement
+vmware-cis-license
+vmware-content-library
+vmware-eam
+vmware-envoy
+vmware-envoy-hgw
+vmware-envoy-sidecar
+vmware-envoy-system-proxy
+vmware-infraprofile
+vmware-postgres-archiver
+vmware-rhttpproxy
+vmware-sps
+vmware-stsd
+vmware-topologysvc
+vmware-trustmanagement
+vmware-updatemgr
+vmware-vapi-endpoint
+vmware-vdtc
+vmware-vgfa
+vmware-vmon
+vmware-vpostgres
+vmware-vpxd
+vmware-vpxd-svcs
+vmware-vsan-health
+vmware-vsm
+vsphere-ui
+vstats
+wcp
+Stopped:
+
+liagent
+vc-salt
+vmcam
+vmware-imagebuilder
+vmware-netdumper
+vmware-rbd-watchdog
+vmware-vcha
+##### disk
+Filesystem                                   Size  Used Avail Use% Mounted on
+/dev/mapper/vg_root_0-lv_root_0               47G   14G   32G  31% /
+/dev/mapper/core_vg-core                      25G   60K   24G   1% /storage/core
+/dev/mapper/imagebuilder_vg-imagebuilder     9.8G   36K  9.3G   1% /storage/imagebuilder
+/dev/mapper/netdump_vg-netdump               982M   24K  915M   1% /storage/netdump
+/dev/mapper/log_vg-log                        49G  556M   46G   2% /storage/log
+/dev/mapper/db_vg-db                         9.8G  101M  9.2G   2% /storage/db
+/dev/mapper/archive_vg-archive                49G  203M   47G   1% /storage/archive
+/dev/mapper/autodeploy_vg-autodeploy         9.8G   40K  9.3G   1% /storage/autodeploy
+/dev/mapper/dblog_vg-dblog                    20G  177M   19G   1% /storage/dblog
+/dev/mapper/seat_vg-seat                     9.8G   47M  9.2G   1% /storage/seat
+/dev/mapper/updatemgr_vg-updatemgr            98G  902M   92G   1% /storage/updatemgr
+##### uptime
+ 00:41:19 up 9 min,  1 user,  load average: 1.03, 3.29, 2.65
+##### root aging
+Last password change					: Aug 09, 2026
+Password expires					: Nov 07, 2026
+Password inactive					: never
+Account expires						: never
+##### faillock
+Login           Failures    Latest failure         From
+root                0
