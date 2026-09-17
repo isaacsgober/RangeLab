@@ -1,6 +1,6 @@
 # Known Issues & Limitations
 
-Open problems and accepted limitations — things that are not bugs to fix right now, either
+Open problems and accepted limitations - things that are not bugs to fix right now, either
 because nothing depends on them yet or because the constraint is deliberate. Issues that
 were diagnosed **and fixed** live in [[Troubleshooting]].
 
@@ -13,7 +13,7 @@ vCenter's evaluation expiry (that appliance no longer exists). Git history has t
 
 ## Suspending esxi01 will cost its nested VMs time on resume
 
-**Status:** accepted, and not yet re-testable — [[esxi01]] is rebuilt in Stage 4.
+**Status:** accepted, and not yet re-testable - [[esxi01]] is rebuilt in Stage 4.
 
 Suspending the hypervisor freezes the clocks of the VMs inside it, which after the rebuild means
 [[vcenter01]] and [[managed01]]. On resume each is behind by however long the suspend lasted, and
@@ -32,7 +32,7 @@ part of why the layout changed.
 
 vyos01 routes and source-NATs but filters nothing. Its WAN side sits on Workstation's private NAT
 network rather than the internet, and nothing outside can open a connection inward through source
-NAT, so the exposure is limited. A policy is a follow-up item — see [[Rebuild-Plan]].
+NAT, so the exposure is limited. A policy is a follow-up item - see [[Rebuild-Plan]].
 
 ---
 

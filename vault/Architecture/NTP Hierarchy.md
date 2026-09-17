@@ -1,5 +1,9 @@
 # NTP Hierarchy
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 3 of [[Build-Sequence]] rebuilds it.
+
+
 How time reaches every node in Range Lab. Arrows point from a time source to its client. Boxes
 show where each node runs. Decision and rationale:
 [ADR-0004](Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
@@ -40,10 +44,10 @@ flowchart TD
 | ---- | ------- | -------- | ---------- | ------ | ------------ | ------- |
 | [[Precision7730]] | physical host | Windows Time | `time.windows.com` | VMnet10 | `NtpServer` enabled, `AnnounceFlags 5`, poll interval 6–10 | 5 |
 | [[ansible01]] | [[esxi01]] | chrony | `10.10.10.1` | `10.10.10.0/24` | `makestep 1.0 -1`, `allow 10.10.10.0/24` | 6 |
-| [[dnsmasqhost]] | VMware Workstation | chrony | `10.10.10.1` | — | `makestep 1.0 -1` | 6 |
-| [[managed01]] | [[esxi01]] | chrony | `ansible01.rangelab.local` | — | `makestep 1.0 -1` | 7 |
-| [[vcenter01]] | [[esxi01]] | ntpd (VAMI timesync: NTP) | `ansible01.rangelab.local` | — | `tinker panic 0` | 7\* |
-| [[esxi01]] | VMware Workstation | ntpd | `ansible01.rangelab.local` | — | runs with `-g` | 7\* |
+| [[dnsmasqhost]] | VMware Workstation | chrony | `10.10.10.1` | - | `makestep 1.0 -1` | 6 |
+| [[managed01]] | [[esxi01]] | chrony | `ansible01.rangelab.local` | - | `makestep 1.0 -1` | 7 |
+| [[vcenter01]] | [[esxi01]] | ntpd (VAMI timesync: NTP) | `ansible01.rangelab.local` | - | `tinker panic 0` | 7\* |
+| [[esxi01]] | VMware Workstation | ntpd | `ansible01.rangelab.local` | - | runs with `-g` | 7\* |
 
 Strata marked \* weren't read directly. A client is always one stratum below its source, so they
 follow from ansible01's stratum 6. The other strata were read with `chronyc` on 2026-09-15. Strata

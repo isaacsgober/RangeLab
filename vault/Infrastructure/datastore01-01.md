@@ -1,5 +1,9 @@
 # datastore01-01
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 Default ESXi system datastore created during installation.
 

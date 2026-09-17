@@ -14,7 +14,7 @@ a free-for-all suffix: RFC 6762 reserves it for multicast DNS, and resolvers act
 and any host running Avahi behave the same way. A unicast DNS server answering `.local` names works
 only as long as nothing in the path takes the reservation seriously.
 
-Nothing in the old lab broke because of it — `dnsmasq` answered and the nodes had
+Nothing in the old lab broke because of it - `dnsmasq` answered and the nodes had
 `resolved` configured simply enough not to interfere. But the rebuild adds nodes with resolvers we
 do not control, and the AD stage later adds a client population where mDNS behaviour matters.
 A rebuild is the cheap moment to change a domain name; after Kerberos and certificates exist, it is

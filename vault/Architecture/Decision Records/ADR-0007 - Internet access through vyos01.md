@@ -10,13 +10,13 @@ repository](ADR-0003%20-%20Local%20ISO%20package%20repository.md) and **revises*
 
 ## Context
 
-The pre-rebuild lab had no route off [[VMnet10]]. That was never a security requirement — it was a
-side effect of building on a host-only network with no gateway — but every node inherited it, and
+The pre-rebuild lab had no route off [[VMnet10]]. That was never a security requirement - it was a
+side effect of building on a host-only network with no gateway - but every node inherited it, and
 the workarounds accumulated:
 
 - **Packages.** With the Rocky mirrors unreachable, each node mounted the 10.2 DVD as a local
   repository (ADR-0003). The package set was frozen at GA, so the lab received no security updates,
-  and anything not on the DVD — `ansible.posix`, `ansible-lint`, `yamllint` — had no install path.
+  and anything not on the DVD - `ansible.posix`, `ansible-lint`, `yamllint` - had no install path.
   `site.yml` worked around the missing `authorized_key` module by managing the file by hand.
   A clone inherited the repo configuration without the `fstab` entry and silently had no package
   source for a day.
@@ -24,8 +24,8 @@ the workarounds accumulated:
   its own time. When esxi01 was suspended, that clock froze and the lab split 3 h 49 m apart
   (ADR-0004). The eventual fix pointed the lab at Windows Time on [[Precision7730]], which worked
   but made the lab's correctness depend on a laptop's clock service being started.
-- **Troubleshooting.** Tools that would have shortened several sessions — `bind-utils` for `dig`,
-  an editor better than `vi` — could not be installed while diagnosing the thing that needed them.
+- **Troubleshooting.** Tools that would have shortened several sessions - `bind-utils` for `dig`,
+  an editor better than `vi` - could not be installed while diagnosing the thing that needed them.
 
 The lab's own roadmap already called for a router (Stage 01), and `10.10.10.3` was reserved for it
 in [ADR-0001](ADR-0001%20-%20IP%20addressing%20plan.md).
@@ -50,8 +50,8 @@ vyos01 carries **no firewall policy** at this stage; see Consequences.
 
 ## Rationale
 
-- The air gap cost more than it bought. It was not protecting anything — the lab holds no sensitive
-  data — while it blocked updates, tooling, and correct time.
+- The air gap cost more than it bought. It was not protecting anything - the lab holds no sensitive
+  data - while it blocked updates, tooling, and correct time.
 - Reachable repositories mean nodes can be patched, which is the baseline expectation for any
   system, and makes the lab honest as a portfolio piece.
 - A real upstream clock removes the invented stratum and the dependency on the host's Windows Time
@@ -77,7 +77,7 @@ Disadvantages
 - **The lab is no longer isolated.** A compromised lab node has outbound internet access. Accepted:
   there is no sensitive data here, source NAT permits no inbound connections, and vyos01's WAN side
   is Workstation's private network rather than the internet. A firewall policy on vyos01 is the
-  deferred follow-up that closes this properly — tracked in [[Known-Issues]].
+  deferred follow-up that closes this properly - tracked in [[Known-Issues]].
 - Package versions are no longer frozen, so two nodes built weeks apart differ. Reproducibility
   moves from "identical DVD" to "versions recorded in the device notes".
 - The lab depends on the host's connectivity and on the chosen public resolvers. The first

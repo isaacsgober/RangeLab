@@ -29,8 +29,8 @@ Divide `10.10.10.0/24` into function-based bands:
 | .1 – .9     | Network infrastructure                   | `.1` gateway / host adapter, `.2` dnsmasqhost                |
 | .10 – .19   | Hypervisors and management plane         | `.10` esxi01, `.15` vcenter01                                |
 | .20 – .99   | Linux VMs and workloads                  | `.20` ansible01, `.21` managed01 [see revisions](#revisions) |
-| .100 – .199 | Windows VMs and workloads *(reserved)*   | —                                                            |
-| .200 – .254 | Transient hosts, range targets, reserved | —                                                            |
+| .100 – .199 | Windows VMs and workloads *(reserved)*   | -                                                            |
+| .200 – .254 | Transient hosts, range targets, reserved | -                                                            |
 
 Within a band, assign sequentially from the low end. `.0` and `.255` are reserved by the
 subnet.

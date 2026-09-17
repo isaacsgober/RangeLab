@@ -7,7 +7,7 @@ vyos01](ADR-0007%20-%20Internet%20access%20through%20vyos01.md) and
 [ADR-0006](ADR-0006%20-%20Infrastructure%20services%20outside%20the%20hypervisor.md). What changed:
 the upstream is no longer [[Precision7730]]'s Windows Time service, and the lab's NTP server is
 [[infra01]] rather than a nested [[ansible01]]. [[infra01]] syncs from public NTP through
-[[vyos01]] and serves `10.10.10.0/24`. The rest of this record still holds — `makestep 1.0 -1` on
+[[vyos01]] and serves `10.10.10.0/24`. The rest of this record still holds - `makestep 1.0 -1` on
 chrony nodes, no invented `local stratum`, ESXi's one-shot `-g` correction, and shutting down
 rather than suspending.
 
@@ -107,7 +107,7 @@ Disadvantages
   service starts or restarts it reports about 8 s of root dispersion, and chrony (3 s limit) and
   ntpd (1.5 s limit) reject that. It halves with each poll (8.16 → 4.16 → 2.16 → 1.15 → 0.64 →
   0.38 s at a 64 s poll), and nodes hold their time until then. At a 1024 s poll it settles near
-  1.1 s, which leaves little headroom under ntpd's limit — see [[Known-Issues]].
+  1.1 s, which leaves little headroom under ntpd's limit - see [[Known-Issues]].
   `LocalClockDispersion` does not help; it only applies when Windows runs on its own CMOS clock.
 - **Suspending esxi01 still costs accuracy.** After a 5.5-minute test suspend, the nested nodes came
   back 330 s behind. They recovered in stages: ansible01 after about 6.5 minutes, managed01 after

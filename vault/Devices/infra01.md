@@ -13,7 +13,7 @@ lab.
 
 ## Status
 
-**Running** — installed 2026-09-17. Services are configured in Stage 3, not by hand.
+**Running** - installed 2026-09-17. Services are configured in Stage 3, not by hand.
 
 ---
 
@@ -86,9 +86,9 @@ SSH: `labadmin@10.10.10.2`
 
 ## Services
 
-- [[dnsmasq]] — authoritative for `rangelab.internal` and `10.10.10.in-addr.arpa`, forwarding
+- [[dnsmasq]] - authoritative for `rangelab.internal` and `10.10.10.in-addr.arpa`, forwarding
   everything else to [[vyos01]] *(Stage 3)*
-- [[chrony]] — NTP server for `10.10.10.0/24` *(Stage 3)*
+- [[chrony]] - NTP server for `10.10.10.0/24` *(Stage 3)*
 
 ---
 
@@ -115,7 +115,7 @@ First boot, 2026-09-17:
 | `getenforce` | `Enforcing` |
 
 `timedatectl` also reported `System clock synchronized: no` and `NTP service: n/a`, which is
-expected — a Minimal install has no time service, and chrony arrives with the `ntp_server` role in
+expected - a Minimal install has no time service, and chrony arrives with the `ntp_server` role in
 Stage 3. The RTC read about a minute behind the system clock at that point.
 
 ---

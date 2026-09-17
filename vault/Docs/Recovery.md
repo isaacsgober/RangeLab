@@ -1,4 +1,8 @@
-# Recovery Procedure — DNS Unavailable
+# Recovery Procedure - DNS Unavailable
+
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 7 of [[Build-Sequence]] rebuilds it.
+
 
 _What to do if the dnsmasq DNS server (dnsmasqhost) goes down or is unreachable._
 
@@ -44,6 +48,6 @@ DNS must be functional for vCenter to properly operate; the only solution is to 
 		nslookup vcenter01.rangelab.local 10.10.10.2
 		nslookup 10.10.10.15 10.10.10.2
 	```
-	Both must succeed — vCenter depends on forward _and_ reverse.
+	Both must succeed - vCenter depends on forward _and_ reverse.
 	
 6. **Check vCenter.** VAMI at `https://10.10.10.15:5480` and the vSphere Client at `https://10.10.10.15`. Services may recover unaided; allow several minutes before restarting anything.

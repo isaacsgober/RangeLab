@@ -1,5 +1,9 @@
 # chrony
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 3 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 Time synchronization for Range Lab. [[ansible01]] runs `chronyd` as the NTP server for the VMs
@@ -41,7 +45,7 @@ Stock `/etc/chrony.conf` is preserved as `/etc/chrony.conf.orig` on [[ansible01]
 [[managed01]]. The configuration as it was before 2026-09-15 is saved as
 `/etc/chrony.conf.bak-rangelab` on ansible01, managed01, and dnsmasqhost.
 
-**Server — [[ansible01]]**, `/etc/chrony.conf`:
+**Server - [[ansible01]]**, `/etc/chrony.conf`:
 
 | Line | Effect |
 | ---- | ------ |
@@ -54,7 +58,7 @@ firewalld: `ntp` service (123/UDP) added permanently.
 
 `chronyc tracking` → `Reference ID 0A0A0A01` (10.10.10.1), `Stratum 6`.
 
-**Clients — [[managed01]] and [[dnsmasqhost]]**, `/etc/chrony.conf`:
+**Clients - [[managed01]] and [[dnsmasqhost]]**, `/etc/chrony.conf`:
 
 | Line | Effect |
 | ---- | ------ |
@@ -79,14 +83,14 @@ firewalld: `ntp` service (123/UDP) added permanently.
 **Windows Time dispersion.** Right after Windows Time starts, Precision7730 advertises about 8 s
 of root dispersion. chrony rejects sources above 3 s (`chronyc selectdata` marks them `d`), and
 ntpd rejects above 1.5 s. The dispersion halves with each poll and settles within a few minutes. At a
-1024 s poll it settles near 1.1 s — see [[Known-Issues]].
+1024 s poll it settles near 1.1 s - see [[Known-Issues]].
 
 **Suspends.** Suspending [[esxi01]] freezes the nested VMs' clocks. On resume, chrony and ntpd
 distrust their source until the pre-suspend samples age out ("Jitter ... exceeds maxjitter of
 1.000 seconds"), so recovery takes 6–15 minutes. Prefer shutting down; see
 [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
 
-`chrony` package updates are limited to the Rocky 10.2 DVD set — see [[ansible01]].
+`chrony` package updates are limited to the Rocky 10.2 DVD set - see [[ansible01]].
 
 ---
 

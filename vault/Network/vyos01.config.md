@@ -4,7 +4,7 @@ The running configuration of [[vyos01]], exported on 2026-09-16 with `show confi
 Re-applying these lines in `configure` mode rebuilds the router exactly. The hash on the
 `system login user vyos` line is redacted; the password itself is in `creds.md`, outside this repo.
 Not every line here was a lab decision: the `offload`, `hw-id`, `ntp`, `console`, `syslog`, and
-`config-management` lines are VyOS's own defaults — see [[Build-Sequence]] 1.4.
+`config-management` lines are VyOS's own defaults - see [[Build-Sequence]] 1.4.
 
 ```bash
 set interfaces ethernet eth0 address '192.168.132.3/24'

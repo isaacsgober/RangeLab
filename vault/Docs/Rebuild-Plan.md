@@ -1,6 +1,6 @@
 # Rebuild Plan
 
-**Status:** version 2, 2026-09-15. Re-scoped to the [[Project_Checklist]] and Isaac's decisions.
+**Status:** version 2, 2026-09-15. Re-scoped to the [[Project_Checklist]].
 Nothing has been built yet. Tracked in Linear project **RangeLab Rebuild** (target 2026-09-17).
 
 **Purpose:** Phase 6 needs a build sequence another person could follow. Today's lab works, but it
@@ -12,22 +12,22 @@ This plan rebuilds the lab from scratch with those problems designed out, and wr
 
 ## 1. Goal and definition of done
 
-**By the deadline (2026-09-17, about 8 of Isaac's hours):**
+**By the deadline (about 8 working hours):**
 
 1. A full, successful build of the layout in §4.
 2. `Build-Sequence.md` written during the build, step by step, from what actually worked.
 3. Every stage's checks (§6) pass, and a second `site.yml` run reports `changed=0`.
 4. No workarounds and no cloned VMs.
-5. Isaac can explain every step and every tool.
+5. Every step and every tool is explainable by the person who built it.
 
 **After the deadline:** a second build that follows the doc with zero deviations, an outside
-reviewer, the `v1.0` tag, and a VyOS firewall policy — written with Ansible's `vyos.vyos`
+reviewer, the `v1.0` tag, and a VyOS firewall policy - written with Ansible's `vyos.vyos`
 collection rather than by hand. VyOS is managed through a different execution model than the Rocky
 nodes (`ansible.netcommon.network_cli` and `ansible_network_os`, driving the CLI instead of copying
 a Python module to the target), so it needs its own playbook, its own collections, and time to
 learn properly. Deliberately out of scope for this build: vyos01's configuration is 45 lines
 already captured in [[vyos01.config]], so automating it now would buy little and cost a stage. The
-firewall policy is the right first target for it — a real network-automation artifact on a device
+firewall policy is the right first target for it - a real network-automation artifact on a device
 that already works.
 
 ---
@@ -36,7 +36,7 @@ that already works.
 
 - **Stay on the checklist.** Anything beyond [[Project_Checklist]] is a named, small expansion. The
   only one is vyos01 as a minimal gateway (roadmap Stage 01, `.3` already reserved in ADR-0001).
-- **Only tools Isaac understands.** Anything new gets explained before it's used.
+- **Only tools already understood.** Anything new is explained before it is used.
 - **Right the first time.** Values and commands are prepared and checked before each stage. Each
   stage starts with pre-flight checks for what it depends on.
 - **Time-box problems to 20 minutes.** If a problem isn't understood by then, stop, choose the
@@ -227,7 +227,7 @@ Each stage ends with its checks passing before the next begins. Expected output 
 | ESXi and vCenter | Manual, fully documented |
 | Rocky installs | Interactive installer + `bootstrap.yml` |
 | `labadmin` password | Set at install, recorded in `creds.md` |
-| Authorship | Isaac does the build work and decides as it goes what to hand to Claude; Claude writes documentation for Isaac's review |
+| Authorship | Build work is done by hand; documentation is drafted for review before it lands |
 | Git | Same repo, `pre-rebuild` tag, stage branches + PRs |
 | vCenter size | `small` |
 | proxve01 | Untouched, out of scope |
@@ -248,7 +248,7 @@ Each stage ends with its checks passing before the next begins. Expected output 
   [[VM Layout]], the network canvas, `Ansible/README.md`, root `README.md`, and
   `Scripts/vcenter_inventory.py`'s hostname.
 - **Kept as history:** [[Troubleshooting]], the journals, and this plan.
-- **Windows host cleanup (Isaac, optional):** the "NTP server (RangeLab VMnet10)" firewall rule and
+- **Windows host cleanup (optional):** the "NTP server (RangeLab VMnet10)" firewall rule and
   the Windows Time server settings are no longer used by the lab.
 
 ---

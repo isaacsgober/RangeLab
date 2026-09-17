@@ -1,5 +1,9 @@
 # dnsmasq
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 3 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 To provide DNS service to machines in Range Lab
@@ -48,7 +52,7 @@ To add a host, add a `host-record=<fqdn>,<ip>` line, run `dnsmasq --test`, then
 for a type it doesn't have (AAAA, MX) gets `NOERROR` with no answer.
 
 Don't use `address=/<name>/<ip>`. It is a rule for a whole domain: it also answers for every
-subdomain, and it made AAAA queries for lab hosts return NXDOMAIN until 2026-09-15 — see
+subdomain, and it made AAAA queries for lab hosts return NXDOMAIN until 2026-09-15 - see
 [[Troubleshooting]].
 
 **Forward DNS records:**

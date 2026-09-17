@@ -1,5 +1,9 @@
 # dnsmasqhost
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 2 (replaced by [[infra01]]) of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 To host [[dnsmasq]], which provides DNS service for Range Lab.
@@ -70,7 +74,7 @@ ssh dnsmasqhost
 ## Services
 
 - [[dnsmasq]]
-- [[chrony]] — NTP client of [[Precision7730]]
+- [[chrony]] - NTP client of [[Precision7730]]
 
 ---
 
