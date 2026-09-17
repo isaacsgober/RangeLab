@@ -3,6 +3,12 @@
 VMnet10 — `10.10.10.0/24`, host-only, static addressing, no DHCP.
 Allocation policy: [[ADR-0001 - IP addressing plan]].
 
+Since 2026-09-16 the network's default gateway is `.3` ([[vyos01]]), not `.1`. The host adapter
+keeps `.1` but routes nothing — see [[VMnet10]].
+
+*Rebuild in progress. [[vyos01]] is built; the remaining rows are addresses held for nodes as they
+are rebuilt, and `.2` passes from dnsmasqhost to infra01 in Stage 2 of [[Build-Sequence]].*
+
 ## Allocation ranges
 
 | Range       | Purpose                                   |
@@ -15,18 +21,15 @@ Allocation policy: [[ADR-0001 - IP addressing plan]].
 
 ## Assignments
 
-| Device            | Address         |
-| ----------------- | --------------- |
-| [[Precision7730]] | [[10.10.10.1]]  |
-| [[dnsmasqhost]]   | [[10.10.10.2]]  |
-|                   |                 |
-| [[esxi01]]        | [[10.10.10.10]] |
-| [[vcenter01]]     | [[10.10.10.15]] |
-| [[ansible01]]     | [[10.10.10.20]] |
-| [[managed01]]     | [[10.10.10.21]] |
+| Device                        | Address         | State                  |
+| ----------------------------- | --------------- | ---------------------- |
+| [[Precision7730]]             | [[10.10.10.1]]  | Host adapter           |
+| dnsmasqhost → infra01         | [[10.10.10.2]]  | Held — Stage 2         |
+| [[vyos01]]                    | [[10.10.10.3]]  | Built 2026-09-16       |
+|                               |                 |                        |
+| [[esxi01]]                    | [[10.10.10.10]] | Held — Stage 4         |
+| [[vcenter01]]                 | [[10.10.10.15]] | Held — Stage 5         |
+| [[ansible01]]                 | [[10.10.10.20]] | Held — Stage 2         |
+| [[managed01]]                 | [[10.10.10.21]] | Held — Stage 6         |
 
-## Planned
-
-| Device | Address    | Phase |
-| ------ | ---------- | ----- |
-| vyos01 | 10.10.10.3 | 2     |
+vyos01 also holds `192.168.132.3/24` on [[VMnet8]], outside this plan's scope.
