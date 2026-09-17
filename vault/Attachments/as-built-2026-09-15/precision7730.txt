@@ -1,0 +1,83 @@
+﻿##### Windows host
+Model: Precision 7730; RAM GB: 127.8; OS: Microsoft Windows 11 Pro for Workstations 10.0.28000
+CPU: Intel(R) Xeon(R) E-2186M  CPU @ 2.90GHz
+
+##### VMware Workstation
+vmware.exe: 26.0.0 build-25388281
+
+##### VMware host adapters
+VMware Network Adapter VMnet8  Up     192.168.132.1/24 dns=
+VMware Network Adapter VMnet10 Up     10.10.10.1/24 dns=10.10.10.2
+VMware Network Adapter VMnet1  Up     192.168.179.1/24 dns=
+
+##### vmnetnat.conf (host section)
+ip = 192.168.132.2/24
+device = vmnet8
+
+##### VMnet8 DHCP range
+subnet 192.168.132.0 netmask 255.255.255.0 {
+range 192.168.132.128 192.168.132.254;            # default allows up to 125 VM's
+option broadcast-address 192.168.132.255;
+option domain-name-servers 192.168.132.2;
+option domain-name "localdomain";
+option netbios-name-servers 192.168.132.2;
+option routers 192.168.132.2;
+default-lease-time 1800;
+
+##### Windows Time
+Leap Indicator: 0(no warning)
+Stratum: 5 (secondary reference - syncd by (S)NTP)
+Precision: -23 (119.209ns per tick)
+Root Delay: 0.0277178s
+Root Dispersion: 0.0481674s
+ReferenceId: 0x287706E4 (source IP:  40.119.6.228)
+Last Successful Sync Time: 9/15/2026 19:42:00
+Source: time.windows.com,0x8 
+Poll Interval: 6 (64s)
+
+--- config
+
+##### Firewall rules for the lab
+VMware Authd Service | Inbound | Any/Any | remote=Any
+VMware Authd Service (private) | Inbound | Any/Any | remote=LocalSubnet
+NTP server (RangeLab VMnet10) | Inbound | UDP/123 | remote=10.10.10.0/255.255.255.0
+
+##### Workstation VMs
+--- dnsmasqhost  (6.9 GB)  dnsmasqhost.vmx
+    displayName = "dnsmasqhost"
+    guestOS = "rockylinux-64"
+    tools.syncTime = "FALSE"
+    cpuid.coresPerSocket = "1"
+    memsize = "2048"
+    nvme0:0.fileName = "dnsmasqhost.vmdk"
+    sata0:1.fileName = "C:\Users\isaac\Desktop\Deployment\Linux\Distributions\Rocky10.2\Working Media\Rocky-10.2-x86_64-dvd1.iso"
+    ethernet0.connectionType = "custom"
+    ethernet0.virtualDev = "vmxnet3"
+    ethernet0.vnet = "VMnet10"
+--- ESXi_9  (104.3 GB)  ESXi_9.vmx
+    displayName = "esxi01"
+    firmware = "efi"
+    guestOS = "vmkernel9"
+    vhv.enable = "TRUE"
+    tools.syncTime = "FALSE"
+    numvcpus = "12"
+    cpuid.coresPerSocket = "6"
+    memsize = "32768"
+    scsi0:0.fileName = "ESXi_9.vmdk"
+    sata0:1.fileName = "C:\Users\isaac\OneDrive\Desktop\Isaac-20260802T053241Z-1-002\Isaac\vmware\VMware-VMvisor-Installer-9.1.0.0200.25557999.x86_64.iso"
+    ethernet0.connectionType = "custom"
+    ethernet0.virtualDev = "vmxnet3"
+    ethernet0.vnet = "VMnet10"
+    scsi0:1.fileName = "ESXi_9-B.vmdk"
+--- proxve01  (3.8 GB)  proxve01.vmx
+    displayName = "proxve01"
+    guestOS = "debian13-64"
+    tools.syncTime = "FALSE"
+    numvcpus = "4"
+    cpuid.coresPerSocket = "2"
+    memsize = "32768"
+    scsi0:0.fileName = "proxve01.vmdk"
+    sata0:1.fileName = "C:\Users\isaac\Desktop\Deployment\Proxmox\VE\9.2-1\proxmox-ve_9.2-1.iso"
+    ethernet0.connectionType = "custom"
+    ethernet0.vnet = "VMnet10"
+    ethernet0.virtualDev = "e1000"

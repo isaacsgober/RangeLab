@@ -1,0 +1,481 @@
+
+##### hostnamectl
+     Static hostname: dnsmasqhost
+           Icon name: computer-vm
+             Chassis: vm 🖴
+        Product UUID: 7b2c4d56-fb12-c9ea-9ad7-f7313b524353
+        AF_VSOCK CID: 995246931
+      Virtualization: vmware
+    Operating System: Rocky Linux 10.2 (Red Quartz)
+         CPE OS Name: cpe:/o:rocky:rocky:10::baseos
+      OS Support End: Thu 2035-05-31
+OS Support Remaining: 8y 8month 1w 6d
+              Kernel: Linux 6.12.0-211.16.1.el10_2.0.1.x86_64
+        Architecture: x86-64
+     Hardware Vendor: VMware, Inc.
+      Hardware Model: VMware Virtual Platform
+     Hardware Serial: VMware-56 4d 2c 7b 12 fb ea c9-9a d7 f7 31 3b 52 43 53
+    Firmware Version: 6.00
+       Firmware Date: Tue 2026-02-17
+        Firmware Age: 6month 4w
+
+##### os-release
+NAME="Rocky Linux"
+VERSION="10.2 (Red Quartz)"
+
+##### kernel
+6.12.0-211.16.1.el10_2.0.1.x86_64
+
+##### ip-addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+ens160           UP             10.10.10.2/24 fe80::b015:e1e2:905f:5d71/64 
+
+##### ip-route
+default via 10.10.10.1 dev ens160 proto static metric 100 
+10.10.10.0/24 dev ens160 proto kernel scope link src 10.10.10.2 metric 100 
+
+##### resolv.conf
+cat: /etc/resolv.conf: No such file or directory
+
+##### etc-hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+##### nmcli-connections
+Wired connection 1:ens160:802-3-ethernet:yes
+lo:lo:loopback:yes
+ens160::802-3-ethernet:no
+
+##### nmcli-ipv4
+--- Wired
+Error: Wired - no such connection profile.
+--- connection
+Error: connection - no such connection profile.
+--- 1
+Error: 1 - no such connection profile.
+--- lo
+ipv4.method:manual
+ipv4.addresses:127.0.0.1/8
+ipv4.gateway:
+ipv4.dns:
+ipv4.dns-search:
+ipv6.method:manual
+--- ens160
+ipv4.method:auto
+ipv4.addresses:
+ipv4.gateway:
+ipv4.dns:
+ipv4.dns-search:
+ipv6.method:auto
+
+##### chrony.conf
+server 10.10.10.1 iburst
+sourcedir /run/chrony-dhcp
+driftfile /var/lib/chrony/drift
+makestep 1.0 -1
+rtcsync
+ntsdumpdir /var/lib/chrony
+logdir /var/log/chrony
+
+##### chronyc-tracking
+Reference ID    : 0A0A0A01 (_gateway)
+Stratum         : 6
+System time     : 0.000000039 seconds slow of NTP time
+Root delay      : 0.028270159 seconds
+Root dispersion : 1.793752432 seconds
+Leap status     : Normal
+
+##### chronyc-sources
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
+===============================================================================
+^* _gateway                      5   6   377    44   +239us[ +775us] +/- 1807ms
+
+##### dnsmasq.conf
+109:user=dnsmasq
+110:group=dnsmasq
+133:local-service=host
+703:conf-dir=/etc/dnsmasq.d,.rpmnew,.rpmsave,.rpmorig
+711:interface=ens160
+712:bind-dynamic
+715:domain=rangelab.local
+716:local=/rangelab.local/
+717:local=/10.10.10.in-addr.arpa/
+723:host-record=dnsmasqhost.rangelab.local,10.10.10.2
+724:host-record=esxi01.rangelab.local,10.10.10.10
+725:host-record=vcenter01.rangelab.local,10.10.10.15
+726:host-record=ansible01.rangelab.local,10.10.10.20
+727:host-record=managed01.rangelab.local,10.10.10.21
+
+##### repos
+repo id                    repo name                                    status
+appstream                  Rocky Linux 10 - AppStream                   enabled
+appstream-debuginfo        Rocky Linux 10 - AppStream - Debug           disabled
+appstream-source           Rocky Linux 10 - AppStream - Source          disabled
+baseos                     Rocky Linux 10 - BaseOS                      enabled
+baseos-debuginfo           Rocky Linux 10 - BaseOS - Debug              disabled
+baseos-source              Rocky Linux 10 - BaseOS - Source             disabled
+crb                        Rocky Linux 10 - CRB                         disabled
+crb-debuginfo              Rocky Linux 10 - CRB - Debug                 disabled
+crb-source                 Rocky Linux 10 - CRB - Source                disabled
+devel                      Rocky Linux 10 - Devel WARNING! FOR BUILDROO disabled
+devel-debuginfo            Rocky Linux 10 - Devel Debug WARNING! FOR BU disabled
+devel-source               Rocky Linux 10 - Devel Source WARNING! FOR B disabled
+extras                     Rocky Linux 10 - Extras                      enabled
+extras-debuginfo           Rocky Linux 10 - Extras Debug                disabled
+extras-source              Rocky Linux 10 - Extras Source               disabled
+highavailability           Rocky Linux 10 - High Availability           disabled
+highavailability-debuginfo Rocky Linux 10 - High Availability - Debug   disabled
+highavailability-source    Rocky Linux 10 - High Availability - Source  disabled
+nfv                        Rocky Linux 10 - NFV                         disabled
+
+##### repo-files
+--- /etc/yum.repos.d/rocky-addons.repo
+[highavailability]
+name=Rocky Linux $releasever - High Availability
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=HighAvailability-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[highavailability-debuginfo]
+name=Rocky Linux $releasever - High Availability - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=HighAvailability-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[highavailability-source]
+name=Rocky Linux $releasever - High Availability - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=HighAvailability-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[nfv]
+name=Rocky Linux $releasever - NFV
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=NFV-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[nfv-debuginfo]
+name=Rocky Linux $releasever - NFV Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=RT-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[nfv-source]
+name=Rocky Linux $releasever - NFV Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=RT-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[rt]
+name=Rocky Linux $releasever - Realtime
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=RT-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[rt-debuginfo]
+name=Rocky Linux $releasever - Realtime Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=RT-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[rt-source]
+name=Rocky Linux $releasever - Realtime Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=RT-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[sap]
+name=Rocky Linux $releasever - SAP
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAP-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[sap-debuginfo]
+name=Rocky Linux $releasever - SAP Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAP-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[sap-source]
+name=Rocky Linux $releasever - SAP Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAP-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[saphana]
+name=Rocky Linux $releasever - SAPHANA
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAPHANA-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[saphana-debuginfo]
+name=Rocky Linux $releasever - SAPHANA Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAPHANA-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[saphana-source]
+name=Rocky Linux $releasever - SAPHANA Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=SAPHANA-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+--- /etc/yum.repos.d/rocky-devel.repo
+[devel]
+name=Rocky Linux $releasever - Devel WARNING! FOR BUILDROOT ONLY DO NOT LEAVE ENABLED
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[devel-debuginfo]
+name=Rocky Linux $releasever - Devel Debug WARNING! FOR BUILDROOT ONLY DO NOT LEAVE ENABLED
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[devel-source]
+name=Rocky Linux $releasever - Devel Source WARNING! FOR BUILDROOT ONLY DO NOT LEAVE ENABLED
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+--- /etc/yum.repos.d/rocky-dvd.repo
+[rocky-dvd-baseos]
+name=Rocky Linux 10.2 - BaseOS DVD
+baseurl=file:///run/media/dnsmasqhost/Rocky-10-2-x86_64-dvd/BaseOS
+enabled=1
+gpgcheck=1
+gpgkey=file:///run/media/dnsmasqhost/Rocky-10-2-x86_64-dvd/RPM-GPG-KEY-Rocky-10
+[rocky-dvd-appstream]
+name=Rocky Linux 10.2 - AppStream DVD
+baseurl=file:///run/media/dnsmasqhost/Rocky-10-2-x86_64-dvd/AppStream
+enabled=1
+gpgcheck=1
+gpgkey=file:///run/media/dnsmasqhost/Rocky-10-2-x86_64-dvd/RPM-GPG-KEY-Rocky-10
+--- /etc/yum.repos.d/rocky-extras.repo
+[extras]
+name=Rocky Linux $releasever - Extras
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever$rltype
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[extras-debuginfo]
+name=Rocky Linux $releasever - Extras Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[extras-source]
+name=Rocky Linux $releasever - Extras Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=extras-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[plus]
+name=Rocky Linux $releasever - Plus
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=plus-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[plus-debuginfo]
+name=Rocky Linux $releasever - Plus - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=plus-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[plus-source]
+name=Rocky Linux $releasever - Plus - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=plus-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+--- /etc/yum.repos.d/rocky.repo
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever$rltype
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[baseos-debuginfo]
+name=Rocky Linux $releasever - BaseOS - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=BaseOS-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[baseos-source]
+name=Rocky Linux $releasever - BaseOS - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=BaseOS-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[appstream]
+name=Rocky Linux $releasever - AppStream
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever$rltype
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[appstream-debuginfo]
+name=Rocky Linux $releasever - AppStream - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=AppStream-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[appstream-source]
+name=Rocky Linux $releasever - AppStream - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=AppStream-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[crb]
+name=Rocky Linux $releasever - CRB
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=CRB-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[crb-debuginfo]
+name=Rocky Linux $releasever - CRB - Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=CRB-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[crb-source]
+name=Rocky Linux $releasever - CRB - Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=source&repo=CRB-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+--- /etc/yum.repos.d/rocky-security.repo
+[security]
+name=Rocky Linux $releasever - Security
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=security-$releasever$rltype
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[security-debuginfo]
+name=Rocky Linux $releasever - Security Debug
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=security-$releasever-debug$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+[security-source]
+name=Rocky Linux $releasever - Security Source
+mirrorlist=https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=security-$releasever-source$rltype
+gpgcheck=1
+enabled=0
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+##### fstab
+UUID=50c9ccc3-1721-44dd-9dd0-270813872713 /                       xfs     defaults        0 0
+UUID=a1188bdb-0833-40d1-ac90-b061ab8eb78d /boot                   xfs     defaults        0 0
+UUID=8b41cea3-ce41-4234-8716-4082c480ef40 none                    swap    defaults        0 0
+
+##### mounts
+(no iso mount)
+
+##### firewalld
+public (default, active)
+  target: default
+  ingress-priority: 0
+  egress-priority: 0
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources: 
+  services: cockpit dhcpv6-client dns ssh
+  ports: 
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+
+##### selinux
+Enforcing
+
+##### sshd-effective
+port 22
+logingracetime 120
+maxauthtries 6
+permitrootlogin yes
+pubkeyauthentication yes
+passwordauthentication yes
+kbdinteractiveauthentication no
+
+##### local-users
+nobody 65534 / /usr/sbin/nologin
+dnsmasqhost 1000 /home/dnsmasqhost /bin/bash
+ansible 1001 /home/ansible /bin/bash
+
+##### groups-wheel
+wheel:x:10:dnsmasqhost,ansible
+
+##### sudoers-drop-ins
+
+##### ssh-key-fingerprints
+256 SHA256:YPhhuax3r/zxB/hTMJGLUe95nRdslDXYQdWPJ03mpC4 no comment (ECDSA)
+256 SHA256:rZGYH3wsa4C4O0sWvfH/F5kVHI1BK1Zfe35euWp3dGs no comment (ED25519)
+3072 SHA256:dNvRyREWxmJF6TO9DJBlg7AkrtNTKSkGrNlS3JtVIL8 no comment (RSA)
+
+##### authorized-keys-count
+
+##### enabled-units
+run-vmblock\x2dfuse.mount cups.path accounts-daemon.service atd.service audit-rules.service auditd.service avahi-daemon.service bluetooth.service chronyd.service crond.service cups.service dbus-broker.service dnsmasq.service fips-crypto-policy-overlay.service firewalld.service gdm.service getty@.service irqbalance.service iscsi-onboot.service iscsi-starter.service kdump.service libstoragemgmt.service lvm2-monitor.service mcelog.service mdmonitor.service ModemManager.service multipathd.service NetworkManager-dispatcher.service NetworkManager-wait-online.service NetworkManager.service nvmefc-boot-connections.service qemu-guest-agent.service rsyslog.service rtkit-daemon.service selinux-autorelabel-mark.service smartd.service sshd.service sssd.service switcheroo-control.service systemd-confext.service systemd-network-generator.service systemd-pstore.service systemd-sysext.service tuned-ppd.service tuned.service udisks2.service upower.service vgauthd.service vmtoolsd.service avahi-daemon.socket cockpit.socket cups.socket dbus.socket dm-event.socket iscsid.socket iscsiuio.socket lvm2-lvmpolld.socket sssd-kcm.socket systemd-userdbd.socket reboot.target remote-cryptsetup.target remote-fs.target dnf-makecache.timer fstrim.timer fwupd-refresh.timer logrotate.timer plocate-updatedb.timer raid-check.timer 
+##### journald
+File path: /run/log/journal/2d7daa5527f04a12b30f7b8e9500bdfe/system@5138f422fac54bd5a477177e5f072cba-0000000000000001-00065b8ec0cc3fb2.journal
+File path: /run/log/journal/2d7daa5527f04a12b30f7b8e9500bdfe/system.journal
+
+##### machine-id-hash
+efa8c29a1cb35df1
+
+##### package-count
+1243
+
+##### ansible
