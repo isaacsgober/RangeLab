@@ -684,3 +684,56 @@ On 2026-09-15, `faillock --user root` shows 0 failures, and root SSH logins are 
   password gets through.
 - Check the OpenSSH version before blaming per-source penalties (`sshd -V`; they need 9.8 or
   later). They were the cause on the Rocky nodes but couldn't be on vcenter01.
+---
+
+### 2026-09-17 — vyos01's DNS forwarder returned SERVFAIL to every client
+
+**System(s) affected:**
+[[vyos01]], [[infra01]]
+
+**Symptom:**
+`sudo dnf makecache` on a freshly installed infra01 failed with
+`Could not resolve host: mirrors.rockylinux.org`. vyos01 itself resolved names normally.
+
+**Diagnosis steps:**
+On infra01: `/etc/resolv.conf` held `nameserver 10.10.10.3` and `search rangelab.internal`; the
+default route was via `10.10.10.3`; `ping 10.10.10.3` and `ping 1.1.1.1` both replied. So
+addressing, routing, and NAT were all working, and only name resolution failed.
+On vyos01: `show dns forwarding statistics` showed the recursor running with 26 cached entries.
+`dig @192.168.132.2 rockylinux.org +short` answered `76.223.126.88` — upstream worked.
+`dig @10.10.10.3 rockylinux.org +short` returned nothing — the forwarder did not.
+`dig @10.10.10.3 rockylinux.org` gave `status: SERVFAIL` after **1505 ms**.
+First hypothesis, wrong: DNSSEC records could not cross Workstation's NAT DNS proxy.
+`dig @192.168.132.2 . DNSKEY +dnssec` disproved it — 1143 bytes came back with RRSIGs and EDNS
+intact. What that query did show was its own cost: **2201 ms**.
+
+**Root cause:**
+A latency budget, not a misconfiguration. `service dns forwarding` is a PowerDNS Recursor, which
+validates DNSSEC — one client query becomes several upstream round trips to build the chain — and
+its default `network-timeout` is 1500 ms. Workstation's NAT DNS proxy at `192.168.132.2` answers,
+but slowly enough (2201 ms measured cold) that the recursor gave up and returned SERVFAIL. The
+router's own lookups were unaffected because they use `system name-server` and go straight out,
+one query, no validation chain, with dig's far longer timeout.
+
+**Fix:**
+Point the forwarder at public resolvers instead, reached across the same NAT path:
+
+```
+delete service dns forwarding name-server 192.168.132.2
+set service dns forwarding name-server 1.1.1.1
+set service dns forwarding name-server 1.0.0.1
+set system name-server 1.1.1.1
+```
+
+`system name-server` was moved as well, so the router's own lookups and the lab's take the same
+path and Workstation's DNS proxy is out of the lab entirely.
+
+**Verification:**
+`dig @10.10.10.3 rockylinux.org` → `status: NOERROR`, 32 ms.
+`sudo dnf makecache` on infra01 → metadata cache created in 12 s.
+
+**Lesson:**
+Stage 1's checks proved the *router* could resolve and stopped there. `system name-server` and
+`service dns forwarding` are independent settings, so that proved nothing about clients. A
+`dig @10.10.10.3` from the router would have caught this before infra01 existed; it is now a
+required check in [[Build-Sequence]] 1.5.

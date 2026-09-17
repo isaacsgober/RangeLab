@@ -29,7 +29,8 @@ set nat source rule 100 translation address 'masquerade'
 set protocols static route 0.0.0.0/0 next-hop 192.168.132.2
 set service dns forwarding allow-from '10.10.10.0/24'
 set service dns forwarding listen-address '10.10.10.3'
-set service dns forwarding name-server 192.168.132.2
+set service dns forwarding name-server 1.0.0.1
+set service dns forwarding name-server 1.1.1.1
 set service ntp allow-client address '127.0.0.0/8'
 set service ntp allow-client address '169.254.0.0/16'
 set service ntp allow-client address '10.0.0.0/8'
@@ -47,7 +48,7 @@ set system console device ttyS0 speed '115200'
 set system domain-name 'rangelab.internal'
 set system host-name 'vyos01'
 set system login user vyos authentication encrypted-password '<redacted>'
-set system name-server '192.168.132.2'
+set system name-server '1.1.1.1'
 set system option reboot-on-upgrade-failure '5'
 set system syslog local facility all level 'info'
 set system syslog local facility local7 level 'debug'

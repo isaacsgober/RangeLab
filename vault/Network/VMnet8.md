@@ -23,7 +23,9 @@ CIDR: /24
 
 Gateway: 192.168.132.2 (Workstation's NAT service)
 
-DNS: 192.168.132.2 (the same service, acting as a DNS proxy)
+DNS: 192.168.132.2 (the same service, acting as a DNS proxy) — **unused by the lab**; it is too
+slow for [[vyos01]]'s recursor, which forwards to public resolvers instead. See [[Troubleshooting]]
+(2026-09-17).
 
 DHCP: Enabled, `.128 – .254`, managed by Workstation
 

@@ -1,3 +1,4 @@
+
 # Build Sequence
 
 How to build Range Lab from nothing. Written during the 2026-09-16 rebuild, one stage at a time,
@@ -18,6 +19,18 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 | Networks | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
 | Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 DVD, VMware ESXi 9.1, VCSA 9.1 |
 | Repository | This repo, cloned on the host |
+| Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
+
+**About that firmware split.** Workstation offers only BIOS for the Linux guest profiles this lab
+uses — the UEFI option is present but greyed out — so vyos01, infra01, and ansible01 are all BIOS.
+That is a Workstation limitation for these profiles, not a host one: Precision7730 itself boots
+UEFI (`$env:firmware_type` → `UEFI`). esxi01 is the exception in the other direction. Its ESXi
+guest profile forces `firmware = "efi"` with no choice offered, which is what ESXi 9 requires, and
+VMs created on esxi01 afterwards get UEFI from ESXi rather than from Workstation.
+
+The visible consequence on the BIOS nodes: Rocky's automatic partitioning creates a small
+`biosboot` partition instead of an EFI system partition, so there is no `/boot/efi` mount. Nothing
+else in this build depends on firmware type.
 
 ---
 
@@ -31,18 +44,18 @@ with `10.10.10.3` as its default gateway.
 
 In Workstation: **File → New Virtual Machine → Custom**.
 
-| Setting | Value | Why |
-| ------- | ----- | --- |
-| Guest OS | Linux → Debian 12.x 64-bit | VyOS 1.5 is built on Debian 12 |
-| Name | `vyos01` | [[Naming Convention]] |
-| Location | `Documents\Virtual Machines\vyos01` | One folder per VM |
-| Firmware | BIOS | What this VM was built with — Workstation's default for the Debian 12 profile. VyOS boots either way. The other nodes in this lab are UEFI, so this is a deviation, recorded rather than hidden. |
-| Processors | 1 | Routing this lab needs almost nothing |
-| Memory | 4096 MB | VyOS 1.5's documented minimum |
-| Network adapter 1 | Custom → **VMnet8**, `e1000` | The outside (WAN) interface |
-| Network adapter 2 | Custom → **VMnet10**, `e1000` | The lab (LAN) interface — add it in VM Settings after creation |
-| Disk | 20 GB, single file, SCSI (LSI Logic) | Minimum is 10 GB; thin, so it costs under 1 GB in practice |
-| CD/DVD | VyOS Stream ISO, connected at power on | Install media |
+| Setting           | Value                                  | Why                                                                           |
+| ----------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| Guest OS          | Linux → Debian 12.x 64-bit             | VyOS 1.5 is built on Debian 12                                                |
+| Name              | `vyos01`                               | [[Naming Convention]]                                                         |
+| Location          | `Documents\Virtual Machines\vyos01`    | One folder per VM                                                             |
+| Firmware          | BIOS                                   | The only firmware Workstation offers for this guest profile here — see below  |
+| Processors        | 1                                      | Routing this lab needs almost nothing                                         |
+| Memory            | 4096 MB                                | VyOS 1.5's documented minimum                                                 |
+| Network adapter 1 | Custom → **VMnet8**, `e1000`           | The outside (WAN) interface                                                   |
+| Network adapter 2 | Custom → **VMnet10**, `e1000`          | The lab (LAN) interface; add it in VM Settings after creation                 |
+| Disk              | 20 GB, single file, SCSI (LSI Logic)   | Minimum is 10 GB; thin, so it costs under 1 GB in practice                    |
+| CD/DVD            | VyOS Stream ISO, connected at power on | Install media                                                                 |
 
 Then, with the VM powered off, add one line to `vyos01.vmx`:
 
@@ -120,10 +133,11 @@ Route out and a resolver for the router itself:
 
 ```
 set protocols static route 0.0.0.0/0 next-hop 192.168.132.2
-set system name-server 192.168.132.2
+set system name-server 1.1.1.1
 ```
 
-`192.168.132.2` is Workstation's NAT service: both the gateway off VMnet8 and a DNS proxy.
+`192.168.132.2` is Workstation's NAT service, the gateway off VMnet8. It also runs a DNS proxy on
+the same address, but the lab does not use it — see the DNS forwarding note below.
 
 Source NAT, so lab addresses can reach the internet:
 
@@ -142,10 +156,18 @@ DNS forwarding, for infra01 to send non-lab queries to:
 ```
 set service dns forwarding listen-address 10.10.10.3
 set service dns forwarding allow-from 10.10.10.0/24
-set service dns forwarding name-server 192.168.132.2
+set service dns forwarding name-server 1.1.1.1
+set service dns forwarding name-server 1.0.0.1
 ```
 
 `allow-from` keeps this from being an open resolver. `listen-address` keeps it off the WAN side.
+
+**Do not forward to `192.168.132.2` here**, even though it answers DNS and is one hop closer. This
+service is a PowerDNS Recursor: it validates DNSSEC, so a single client query becomes several
+upstream round trips, and it abandons an upstream that takes longer than 1500 ms. Workstation's NAT
+DNS proxy measured 2201 ms on a cold query, so every client got SERVFAIL while the router itself
+resolved fine. Public resolvers answer in about 25 ms across the same NAT path. Full account in
+[[Troubleshooting]] (2026-09-17).
 
 Management access:
 
@@ -179,13 +201,22 @@ ping 192.168.132.2 count 3
 ping 1.1.1.1 count 3
 ping vyos.net count 3
 show nat source rules
+dig @10.10.10.3 rockylinux.org
 ```
 
 Expected: both interfaces up with the addresses above; a default route via `192.168.132.2`; all
-three pings succeed (the last one proves DNS works); one NAT rule listed.
+three pings succeed; one NAT rule listed; and the `dig` returns `status: NOERROR` in tens of
+milliseconds.
+
+**That last check is the one that matters most, and it is not optional.** The pings prove the
+router can resolve *for itself*, which uses `system name-server` and never touches the forwarding
+service. Querying `10.10.10.3` is the only check here that tests what clients will actually use.
+Stage 1 originally ended without it, and the first client to ask a question — infra01, a stage
+later — got nothing.
 
 **Result, 2026-09-16:** all three pings replied, including `vyos.net` — which also proves the
-adapter order was right, since the replies came back through `eth0`.
+adapter order was right, since the replies came back through `eth0`. **2026-09-17:**
+`dig @10.10.10.3` returned NOERROR in 32 ms after the forwarder was pointed at public resolvers.
 
 From the Windows host, confirm management access:
 
@@ -225,7 +256,7 @@ Install infra01 first, then ansible01. Both are Workstation guests, so neither d
 | Setting | infra01 | ansible01 |
 | ------- | ------- | --------- |
 | Guest OS | Linux → Rocky Linux 64-bit | Linux → Rocky Linux 64-bit |
-| Firmware | UEFI | UEFI |
+| Firmware | BIOS | BIOS |
 | Processors | 1 | 2 |
 | Memory | 2048 MB | 4096 MB |
 | Disk | 20 GB, single file | 30 GB, single file |
@@ -242,20 +273,20 @@ rtc.diffFromUTC = "0"
 
 Identical for both machines except the highlighted rows.
 
-| Installer screen | Setting |
-| ---------------- | ------- |
-| Language / Keyboard | English (US) |
-| Time & Date | Region/City: **Etc / Coordinated Universal Time** |
-| Software Selection | **Minimal Install** |
-| Installation Destination | The virtual disk, automatic partitioning |
-| Network & Host Name → Host Name | **`infra01.rangelab.internal`** / **`ansible01.rangelab.internal`** |
-| … → Configure → IPv4 Settings | Method **Manual** |
-| … → Address | **`10.10.10.2`** / **`10.10.10.20`**, netmask `255.255.255.0`, gateway `10.10.10.3` |
-| … → DNS servers | `10.10.10.3` |
-| … → Search domains | `rangelab.internal` |
-| … → General | "Connect automatically with priority" checked |
-| Root Account | **Lock root account** |
-| User Creation | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
+| Installer screen                | Setting                                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| Language / Keyboard             | English (US)                                                                        |
+| Time & Date                     | Region/City: **Etc / Coordinated Universal Time**                                   |
+| Software Selection              | **Minimal Install**                                                                 |
+| Installation Destination        | The virtual disk, automatic partitioning                                            |
+| Network & Host Name → Host Name | **`infra01.rangelab.internal`** / **`ansible01.rangelab.internal`**                 |
+| … → Configure → IPv4 Settings   | Method **Manual**                                                                   |
+| … → Address                     | **`10.10.10.2`** / **`10.10.10.20`**, netmask `255.255.255.0`, gateway `10.10.10.3` |
+| … → DNS servers                 | `10.10.10.3`                                                                        |
+| … → Search domains              | `rangelab.internal`                                                                 |
+| … → General                     | "Connect automatically with priority" checked                                       |
+| Root Account                    | **Lock root account**                                                               |
+| User Creation                   | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
 
 Begin installation, then reboot and disconnect the ISO.
 

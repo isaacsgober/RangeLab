@@ -102,7 +102,7 @@ host's LAN. Nothing outside can open a connection inward, which is intentional.
 
 | Service | Configuration | Notes |
 | ------- | ------------- | ----- |
-| DNS forwarding | `listen-address 10.10.10.3`, `allow-from 10.10.10.0/24`, `name-server 192.168.132.2` | `allow-from` keeps it from being an open resolver; `listen-address` keeps it off the WAN side. Lab nodes use it directly until infra01 exists, then infra01 answers `rangelab.internal` and forwards the rest here. |
+| DNS forwarding | `listen-address 10.10.10.3`, `allow-from 10.10.10.0/24`, `name-server 1.1.1.1` and `1.0.0.1` | A PowerDNS Recursor: it caches and validates DNSSEC. `allow-from` keeps it from being an open resolver; `listen-address` keeps it off the WAN side. Lab nodes use it directly until infra01 exists, then infra01 answers `rangelab.internal` and forwards the rest here. It does **not** forward to Workstation's NAT DNS proxy — that proxy is too slow for the recursor's 1500 ms timeout, see [[Troubleshooting]] (2026-09-17). |
 | SSH | `listen-address 10.10.10.3` | LAN only. |
 | NTP | VyOS defaults: servers `time1`–`time3.vyos.net`, `allow-client` for RFC 1918, loopback, and link-local | Shipped with the image, not configured for this lab. The lab's own time design is still [[chrony]] on infra01 — see [[Rebuild-Plan]] §4.3. |
 
@@ -143,7 +143,9 @@ Console: Workstation KVM console
 
 20 GB, thin, single `.vmdk`
 
-Firmware BIOS; guest OS profile Debian 12 64-bit; LSI Logic SCSI controller; two `e1000` adapters.
+Firmware BIOS — the same as every Workstation guest in this lab, because Workstation offers no UEFI
+for these Linux guest profiles here. See [[Build-Sequence]]. Guest OS profile Debian 12 64-bit; LSI
+Logic SCSI controller; two `e1000` adapters.
 
 ---
 
@@ -153,7 +155,7 @@ Firmware BIOS; guest OS profile Debian 12 64-bit; LSI Logic SCSI controller; two
 	`rtc.diffFromUTC = "0"` is set in `vyos01.vmx`. Workstation otherwise gives the guest a hardware clock on the host's *local* time, which Linux reads as UTC — the reason dnsmasqhost used to boot five hours in the past.
 	VyOS edits a candidate configuration: `configure` to enter it, `compare` to see the pending change, `commit` to make it live, and `save` to write `/config/config.boot`. A commit that is not saved is lost at reboot. `system config-management commit-revisions 100` keeps the last 100 committed revisions on the router itself.
 	The running configuration is exported to [[vyos01.config]] as `set` commands, with the password hash replaced by a placeholder.
-	Verified at build: both interfaces up, default route present, and `ping` to `192.168.132.2`, `1.1.1.1`, and `vyos.net` all replied — the last one proving DNS forwarding works.
+	Verified at build: both interfaces up, default route present, and `ping` to `192.168.132.2`, `1.1.1.1`, and `vyos.net` all replied. The `vyos.net` ping proves only that *the router* resolves, via `system name-server`; the forwarding service is separate and needs its own check, `dig @10.10.10.3` — see [[Troubleshooting]] (2026-09-17).
 	The Windows host keeps `10.10.10.1` on its VMnet10 adapter with no gateway, so host routing is unchanged by the lab having one.
 
 ---

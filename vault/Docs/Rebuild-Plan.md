@@ -62,7 +62,7 @@ From the journals, [[Troubleshooting]], and [[Known-Issues]].
 | `ansible.posix` and `ansible-lint` unavailable | Air-gapped | Installed normally from Galaxy and pip |
 | CRLF file broke journald; `rm -rf` of the working copy | Files copied with `scp` | ansible01 clones the repo from GitHub and uses `git pull` |
 | Control node and NTP server nested in the hypervisor | Placement | ansible01 and infra01 run directly in Workstation |
-| dnsmasqhost unmanaged, misnamed, BIOS boot | Built before Ansible; no spec | infra01, Ansible-managed, UEFI, named per [[Naming Convention]] |
+| dnsmasqhost unmanaged, misnamed, built ad hoc | Built before Ansible; no spec | infra01, Ansible-managed, built from a settings table, named per [[Naming Convention]] |
 
 ---
 
@@ -101,8 +101,8 @@ flowchart TD
 | Node | Runs on | Address | OS | vCPU / RAM / disk | Roles |
 |---|---|---|---|---|---|
 | vyos01 | Workstation | LAN 10.10.10.3 (VMnet10), WAN 192.168.132.3 (VMnet8) | VyOS Stream 2026.02 (1.5 Circinus) | 1 / 4 GB / 10 GB | Gateway, source NAT, DNS forwarding |
-| infra01 | Workstation | 10.10.10.2 | Rocky 10.2, UEFI | 1 / 2 GB / 20 GB | DNS (dnsmasq), NTP server (chrony) |
-| ansible01 | Workstation | 10.10.10.20 | Rocky 10.2, UEFI | 2 / 4 GB / 30 GB | Ansible control node |
+| infra01 | Workstation | 10.10.10.2 | Rocky 10.2, BIOS | 1 / 2 GB / 20 GB | DNS (dnsmasq), NTP server (chrony) |
+| ansible01 | Workstation | 10.10.10.20 | Rocky 10.2, BIOS | 2 / 4 GB / 30 GB | Ansible control node |
 | esxi01 | Workstation | 10.10.10.10 | ESXi 9.1, UEFI, nested | 6 / 64 GB / 128 GB boot + 400 GB data | Hypervisor |
 | vcenter01 | esxi01 | 10.10.10.15 | VCSA 9.1 `small` | 4 / 21 GB / thin | vCenter |
 | managed01 | esxi01 | 10.10.10.21 | Rocky 10.2, UEFI | 2 / 2 GB / 30 GB | Managed node |
