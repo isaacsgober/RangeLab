@@ -31,10 +31,12 @@ Host Adapter: 10.10.10.1 — an address on this network, not a gateway
 
 ## Members
 
-*Rebuild in progress (2026-09-16). Only vyos01 exists so far; the rest join as they are built.*
+*Rebuild in progress. The remaining nodes join as they are built.*
 
 - [[Precision7730]] (host adapter)
 - [[vyos01]]
+- [[infra01]]
+- [[ansible01]]
 
 ---
 

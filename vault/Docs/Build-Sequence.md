@@ -21,16 +21,8 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 | Repository | This repo, cloned on the host |
 | Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
 
-**About that firmware split.** Workstation offers only BIOS for the Linux guest profiles this lab
-uses — the UEFI option is present but greyed out — so vyos01, infra01, and ansible01 are all BIOS.
-That is a Workstation limitation for these profiles, not a host one: Precision7730 itself boots
-UEFI (`$env:firmware_type` → `UEFI`). esxi01 is the exception in the other direction. Its ESXi
-guest profile forces `firmware = "efi"` with no choice offered, which is what ESXi 9 requires, and
-VMs created on esxi01 afterwards get UEFI from ESXi rather than from Workstation.
-
-The visible consequence on the BIOS nodes: Rocky's automatic partitioning creates a small
-`biosboot` partition instead of an EFI system partition, so there is no `/boot/efi` mount. Nothing
-else in this build depends on firmware type.
+Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
+esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
 
 ---
 
@@ -49,7 +41,7 @@ In Workstation: **File → New Virtual Machine → Custom**.
 | Guest OS          | Linux → Debian 12.x 64-bit             | VyOS 1.5 is built on Debian 12                                                |
 | Name              | `vyos01`                               | [[Naming Convention]]                                                         |
 | Location          | `Documents\Virtual Machines\vyos01`    | One folder per VM                                                             |
-| Firmware          | BIOS                                   | The only firmware Workstation offers for this guest profile here — see below  |
+| Firmware          | BIOS                                   | The only option Workstation offers for this guest profile                     |
 | Processors        | 1                                      | Routing this lab needs almost nothing                                         |
 | Memory            | 4096 MB                                | VyOS 1.5's documented minimum                                                 |
 | Network adapter 1 | Custom → **VMnet8**, `e1000`           | The outside (WAN) interface                                                   |
@@ -72,8 +64,8 @@ first boot (1.3) before trusting it.
 
 ## 1.2 Install VyOS
 
-Boot the VM from the ISO. It comes up as a live system, with a banner calling the image a
-technology preview for a future LTS release — expected on a stream release, and fine for this lab.
+Boot the VM from the ISO. It comes up as a live system. The banner calling the image a technology
+preview is expected on a stream release.
 
 ```
 login: vyos
@@ -92,8 +84,7 @@ poweroff
 ```
 
 In VM Settings → CD/DVD, clear **Connect at power on** and disconnect the ISO, then power the VM
-back on. Leaving it attached leaves the installer one BIOS boot-order change away from running
-again.
+back on.
 
 ## 1.3 Check which interface is which
 
@@ -162,12 +153,8 @@ set service dns forwarding name-server 1.0.0.1
 
 `allow-from` keeps this from being an open resolver. `listen-address` keeps it off the WAN side.
 
-**Do not forward to `192.168.132.2` here**, even though it answers DNS and is one hop closer. This
-service is a PowerDNS Recursor: it validates DNSSEC, so a single client query becomes several
-upstream round trips, and it abandons an upstream that takes longer than 1500 ms. Workstation's NAT
-DNS proxy measured 2201 ms on a cold query, so every client got SERVFAIL while the router itself
-resolved fine. Public resolvers answer in about 25 ms across the same NAT path. Full account in
-[[Troubleshooting]] (2026-09-17).
+**Do not forward to `192.168.132.2` here.** It is too slow for the recursor's 1500 ms timeout and
+every client gets SERVFAIL — see [[Troubleshooting]] (2026-09-17).
 
 Management access:
 
@@ -186,11 +173,8 @@ save
 `compare` shows what you're about to change. `commit` makes it live. `save` writes it to
 `/config/config.boot` so it survives a reboot — commit alone does not.
 
-**What the image already sets.** The saved configuration contains more than the commands above:
-NTP (`time1`–`time3.vyos.net`, `allow-client` for RFC 1918), `syslog`, a serial console on
-`ttyS0`, per-interface offload settings, `hw-id` pinning each interface to its MAC, and
-`commit-revisions 100`. Those are VyOS defaults, not lab decisions. The lab's own time source is
-still chrony on infra01.
+The saved configuration will contain more than the commands above — NTP, syslog, console,
+offload, `hw-id`, `commit-revisions`. Those are VyOS defaults, not lab decisions.
 
 ## 1.5 Checks
 
@@ -208,11 +192,8 @@ Expected: both interfaces up with the addresses above; a default route via `192.
 three pings succeed; one NAT rule listed; and the `dig` returns `status: NOERROR` in tens of
 milliseconds.
 
-**That last check is the one that matters most, and it is not optional.** The pings prove the
-router can resolve *for itself*, which uses `system name-server` and never touches the forwarding
-service. Querying `10.10.10.3` is the only check here that tests what clients will actually use.
-Stage 1 originally ended without it, and the first client to ask a question — infra01, a stage
-later — got nothing.
+The `dig` is not optional: the pings only prove the router resolves for itself, and the forwarding
+service is what clients use.
 
 **Result, 2026-09-16:** all three pings replied, including `vyos.net` — which also proves the
 adapter order was right, since the replies came back through `eth0`. **2026-09-17:**
@@ -312,11 +293,25 @@ TZ: no"; SELinux `Enforcing`; the gateway replies; and `dnf` reaches the Rocky m
 
 ## 2.4 Prepare ansible01 as the control node
 
-Install the tools:
+Install git, then Ansible and the linters into one virtual environment:
 
 ```
-sudo dnf -y install ansible-core git
+sudo dnf -y install git
+sudo python3 -m venv /opt/ansible
+sudo /opt/ansible/bin/pip install --upgrade pip
+sudo /opt/ansible/bin/pip install ansible-core ansible-lint yamllint
+echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
 ```
+
+Rocky ships `ansible-core` 2.16; pip installs the current release. Putting ansible-core and
+ansible-lint in the same environment keeps the linter and the runtime on one version — install them
+separately and the linter silently checks your work against a core you do not run.
+
+Ansible here is pip-managed: `dnf update` will not touch it. Refresh it with
+`sudo /opt/ansible/bin/pip install -U ansible-core ansible-lint`.
+
+`PATH` from `/etc/profile.d` reaches login and interactive shells, but not cron, systemd units, or
+`ssh host '<command>'`. Use the full `/opt/ansible/bin/` path in those.
 
 Create the automation account (ADR-0002) and give it passwordless sudo:
 
@@ -347,27 +342,30 @@ Clone the repository (public, so no credentials):
 sudo -u ansible git clone https://github.com/isaacsgober/RangeLab.git /home/ansible/RangeLab
 ```
 
-Add the collection the playbooks need, and the linters:
+Add the collection the playbooks need. Collections install per account, under
+`~ansible/.ansible/collections`, independent of which ansible-core is in use:
 
 ```
-sudo -u ansible ansible-galaxy collection install ansible.posix
-sudo -u ansible python3 -m venv /home/ansible/.venvs/lint
-sudo -u ansible /home/ansible/.venvs/lint/bin/pip install ansible-lint yamllint
+sudo -u ansible -i ansible-galaxy collection install ansible.posix
 ```
-
-The linters go in a virtual environment so `pip` never writes into the system Python that `dnf`
-owns.
 
 ## 2.5 Checks
 
 ```
-ansible --version
-sudo -u ansible ansible-galaxy collection list | grep posix
-sudo -u ansible /home/ansible/.venvs/lint/bin/ansible-lint --version
-sudo -u ansible git -C /home/ansible/RangeLab log --oneline -1
+which ansible-playbook
+ansible --version | head -1
+ansible-lint --version
+sudo -u ansible -i ansible-galaxy collection list | grep posix
+sudo -u ansible -i git -C /home/ansible/RangeLab log --oneline -1
 ```
 
-Expected: ansible-core reports its version and config file; `ansible.posix` is listed with its
-version; `ansible-lint` reports a version; the clone's latest commit matches GitHub.
+Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from both `ansible`
+and `ansible-lint`**; `ansible.posix` listed; the clone's latest commit matching GitHub.
+
+`-i` runs the command in the `ansible` account's own login shell and home. Without it these fail
+with `PermissionError: '.'`, because `sudo -u` keeps the current directory and homes are mode 700.
+
+**Verified 2026-09-17:** ansible-core 2.21.4 (pip), ansible-lint 26.8.0 on the same core,
+ansible.posix 2.2.2, Python 3.12.13, clone at `bc756a5`.
 
 Record the installed versions in the device note — they pin what this build was tested with.
