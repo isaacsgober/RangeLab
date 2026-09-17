@@ -8,10 +8,10 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 **Conventions in this document**
 
 - Commands are shown exactly as typed. Output shown is the real output, trimmed.
-- Every stage ends with checks. Don't start the next stage until they pass.
+- Every stage ends with checks. No stage begins until the previous stage's checks pass.
 - Values (addresses, names, sizes) come from [[IP Index]] and [[Naming Convention]].
 
-## What you need before starting
+## Prerequisites
 
 | Item | Value |
 | ---- | ----- |
@@ -26,7 +26,7 @@ esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
 
 ---
 
-# Stage 1 — vyos01, the lab router
+# Stage 1 - vyos01, the lab router
 
 vyos01 is the lab's gateway. It gives every other node a route to the internet, and it forwards
 DNS queries that infra01 can't answer itself. It has to exist first: every later node is installed
@@ -128,7 +128,7 @@ set system name-server 1.1.1.1
 ```
 
 `192.168.132.2` is Workstation's NAT service, the gateway off VMnet8. It also runs a DNS proxy on
-the same address, but the lab does not use it — see the DNS forwarding note below.
+the same address, but the lab does not use it; see the DNS forwarding note below.
 
 Source NAT, so lab addresses can reach the internet:
 
@@ -154,7 +154,7 @@ set service dns forwarding name-server 1.0.0.1
 `allow-from` keeps this from being an open resolver. `listen-address` keeps it off the WAN side.
 
 **Do not forward to `192.168.132.2` here.** It is too slow for the recursor's 1500 ms timeout and
-every client gets SERVFAIL — see [[Troubleshooting]] (2026-09-17).
+every client gets SERVFAIL; see [[Troubleshooting]] (2026-09-17).
 
 Management access:
 
@@ -170,10 +170,10 @@ commit
 save
 ```
 
-`compare` shows what you're about to change. `commit` makes it live. `save` writes it to
-`/config/config.boot` so it survives a reboot — commit alone does not.
+`compare` shows the pending change. `commit` makes it live. `save` writes it to
+`/config/config.boot` so it survives a reboot; commit alone does not.
 
-The saved configuration will contain more than the commands above — NTP, syslog, console,
+The saved configuration will contain more than the commands above: NTP, syslog, console,
 offload, `hw-id`, `commit-revisions`. Those are VyOS defaults, not lab decisions.
 
 ## 1.5 Checks
@@ -195,7 +195,7 @@ milliseconds.
 The `dig` is not optional: the pings only prove the router resolves for itself, and the forwarding
 service is what clients use.
 
-**Result, 2026-09-16:** all three pings replied, including `vyos.net` — which also proves the
+**Result, 2026-09-16:** all three pings replied, including `vyos.net`, which also proves the
 adapter order was right, since the replies came back through `eth0`. **2026-09-17:**
 `dig @10.10.10.3` returned NOERROR in 32 ms after the forwarder was pointed at public resolvers.
 
@@ -212,7 +212,7 @@ show configuration commands
 ```
 
 Save that output to [[vyos01.config]] (`vault/Network/vyos01.config.md`), with the hash on the
-`set system login user vyos authentication encrypted-password` line replaced by a placeholder —
+`set system login user vyos authentication encrypted-password` line replaced by a placeholder  - 
 keeping the line shows the account exists without publishing its hash.
 
 Then write the device note, [[vyos01]], from the same output.
@@ -222,7 +222,7 @@ NAT network, so it isn't exposed to the internet directly. Tracked as a follow-u
 
 ---
 
-# Stage 2 — infra01 and ansible01
+# Stage 2 - infra01 and ansible01
 
 Two Rocky Linux VMs, installed from the DVD. infra01 will serve DNS and NTP to the lab; ansible01
 is the control node that configures everything from here on. Neither is configured by hand beyond
@@ -271,7 +271,7 @@ Identical for both machines except the highlighted rows.
 
 Begin installation, then reboot and disconnect the ISO.
 
-**Why DNS points at the router here:** infra01 isn't serving DNS yet — it's the machine being
+**Why DNS points at the router here:** infra01 is not serving DNS yet; it is the machine being
 installed. `10.10.10.3` forwards to the internet so `dnf` works immediately. Stage 3 switches both
 nodes to infra01 once dnsmasq is running.
 
@@ -304,68 +304,60 @@ echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
 ```
 
 Rocky ships `ansible-core` 2.16; pip installs the current release. Putting ansible-core and
-ansible-lint in the same environment keeps the linter and the runtime on one version — install them
-separately and the linter silently checks your work against a core you do not run.
+ansible-lint in the same environment keeps the linter and the runtime on one version; installed
+separately, the linter checks playbooks against a core the node does not run.
 
-Ansible here is pip-managed: `dnf update` will not touch it. Refresh it with
+Ansible here is pip-managed, so `dnf update` will not touch it. Refresh it with
 `sudo /opt/ansible/bin/pip install -U ansible-core ansible-lint`.
 
 `PATH` from `/etc/profile.d` reaches login and interactive shells, but not cron, systemd units, or
 `ssh host '<command>'`. Use the full `/opt/ansible/bin/` path in those.
 
-Create the automation account (ADR-0002) and give it passwordless sudo:
+**Playbooks run as `labadmin`, not as the `ansible` account.** `ansible` is the account Ansible
+logs in to on managed nodes (ADR-0002); the account invoking `ansible-playbook` does not have to
+carry that name. Running as labadmin keeps the working copy, the SSH key, and the collections in
+one account that owns its own home, which removes every `sudo -u` and permission workaround from
+routine use.
+
+Generate the key Ansible presents to managed nodes:
 
 ```
-sudo useradd --create-home --shell /bin/bash ansible
-printf 'ansible ALL=(ALL) NOPASSWD: ALL\n' | sudo tee /etc/sudoers.d/ansible
-sudo chmod 0440 /etc/sudoers.d/ansible
-sudo visudo -c
+ssh-keygen -t ed25519 -N '' -C 'labadmin@ansible01' -f ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
 ```
 
-`visudo -c` checks every sudoers file before you rely on it. A malformed drop-in can lock out sudo
-entirely.
+No passphrase, so playbooks run unattended; the private key stays on this host and out of the
+repository. Stage 3's bootstrap play installs the public key on every node.
 
-Generate the key this account will use to reach every other node:
-
-```
-sudo -u ansible ssh-keygen -t ed25519 -N '' -C 'ansible@ansible01' -f /home/ansible/.ssh/id_ed25519
-sudo -u ansible cat /home/ansible/.ssh/id_ed25519.pub
-```
-
-It has no passphrase so playbooks can run unattended, and the private key never leaves this host —
-the tradeoff recorded in ADR-0002. Keep the public key handy; Stage 3's bootstrap play installs it
-on the other nodes.
-
-Clone the repository (public, so no credentials):
+Clone the repository (public, so no credentials) and add the collection the playbooks need:
 
 ```
-sudo -u ansible git clone https://github.com/isaacsgober/RangeLab.git /home/ansible/RangeLab
+git clone -b <working-branch> https://github.com/isaacsgober/RangeLab.git ~/RangeLab
+ansible-galaxy collection install ansible.posix
 ```
 
-Add the collection the playbooks need. Collections install per account, under
-`~ansible/.ansible/collections`, independent of which ansible-core is in use:
+Collections install per account, under `~/.ansible/collections`, so this runs as the account that
+runs playbooks. Name the branch explicitly; a plain clone lands on `main`.
 
-```
-sudo -u ansible -i ansible-galaxy collection install ansible.posix
-```
+The `ansible` service account is **not** created here. `bootstrap.yml` creates it on every node
+including this one, so there is one mechanism rather than a hand-built exception.
 
 ## 2.5 Checks
+
+As `labadmin`:
 
 ```
 which ansible-playbook
 ansible --version | head -1
 ansible-lint --version
-sudo -u ansible -i ansible-galaxy collection list | grep posix
-sudo -u ansible -i git -C /home/ansible/RangeLab log --oneline -1
+ansible-galaxy collection list | grep posix
+git -C ~/RangeLab log --oneline -1
 ```
 
 Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from both `ansible`
 and `ansible-lint`**; `ansible.posix` listed; the clone's latest commit matching GitHub.
 
-`-i` runs the command in the `ansible` account's own login shell and home. Without it these fail
-with `PermissionError: '.'`, because `sudo -u` keeps the current directory and homes are mode 700.
-
 **Verified 2026-09-17:** ansible-core 2.21.4 (pip), ansible-lint 26.8.0 on the same core,
 ansible.posix 2.2.2, Python 3.12.13, clone at `bc756a5`.
 
-Record the installed versions in the device note — they pin what this build was tested with.
+Record the installed versions in the device note; they pin what this build was tested with.

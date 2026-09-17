@@ -11,7 +11,7 @@ hypervisor's guests does not live inside the hypervisor.
 
 ## Status
 
-**Running** — rebuilt 2026-09-17
+**Running**; rebuilt 2026-09-17
 
 ---
 
@@ -83,7 +83,7 @@ SSH: `labadmin@10.10.10.20`
 
 ## Services
 
-- [[Ansible]] — control node
+- [[Ansible]]; control node
 
 ---
 
@@ -93,10 +93,10 @@ SSH: `labadmin@10.10.10.20`
 | --------- | ------- | ------ |
 | ansible-core | 2.21.4 | pip, in `/opt/ansible` |
 | ansible-lint | 26.8.0 | pip, same environment |
-| yamllint | — | pip, same environment |
-| ansible.posix | 2.2.2 | `ansible-galaxy`, in `~ansible/.ansible/collections` |
+| yamllint |; | pip, same environment |
+| ansible.posix | 2.2.2 | `ansible-galaxy`, in `~labadmin/.ansible/collections` |
 | Python | 3.12.13 | system |
-| git | — | `dnf` |
+| git |; | `dnf` |
 
 Ansible lives in one virtual environment at `/opt/ansible`, holding ansible-core and the linters
 together so the linter and the runtime are the same version by construction. Rocky's own
@@ -104,7 +104,7 @@ together so the linter and the runtime are the same version by construction. Roc
 there is only one `ansible` on the node.
 
 `/etc/profile.d/ansible.sh` puts `/opt/ansible/bin` on `PATH`. That covers login and interactive
-shells but **not** cron, systemd units, or `ssh ansible01 '<command>'` — use the full
+shells but **not** cron, systemd units, or `ssh ansible01 '<command>'`; use the full
 `/opt/ansible/bin/` path there.
 
 Updates come from pip, not `dnf update`:
@@ -116,9 +116,10 @@ Updates come from pip, not `dnf update`:
 
 2026-09-17:
 	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator, password in `creds.md`.
-	Hosts the `ansible` service account (ADR-0002): passwordless sudo via `/etc/sudoers.d/ansible`, and an Ed25519 key at `~ansible/.ssh/id_ed25519` with no passphrase so playbooks run unattended. The private key stays on this host and is excluded from the repo. Stage 3's bootstrap play installs the public key on every other node.
-	The repository is cloned to `/home/ansible/RangeLab` over HTTPS; `git pull` as the `ansible` user to update.
-	Not a clone of any other VM — the old lab's duplicate machine-id problem came from cloning.
+	Playbooks are invoked as `labadmin`, which owns the working copy at `~labadmin/RangeLab`, the control-side Ed25519 key at `~labadmin/.ssh/id_ed25519`, and the installed collections. `ansible` is the account Ansible logs in to on managed nodes, created there by `bootstrap.yml`; see ADR-0002 (revised 2026-09-17) and [[Development-Workflow]].
+	The control-side key has no passphrase so playbooks run unattended. It stays on this host and is excluded from the repo. Stage 3's bootstrap play installs the public key on every node.
+	This is the canonical working copy of the repository; the copy on the Windows host is for reading and documentation. Only one holds uncommitted changes at a time.
+	Not a clone of any other VM; the old lab's duplicate machine-id problem came from cloning.
 
 ---
 

@@ -7,6 +7,17 @@
 	`/etc/sudoers.d/ansible` on all nodes, so playbook runs need no interactive
 	become password. Tradeoff recorded under Consequences.
 
+2026-09-17:
+	The account invoking `ansible-playbook` on the control node is `labadmin`, not `ansible`.
+	`ansible` remains the account Ansible logs in to on every managed node, which is what this
+	record is about; nothing requires the invoking account to carry the same name. The control-side
+	SSH key therefore lives in `~labadmin/.ssh/id_ed25519`, and collections install under
+	`~labadmin/.ansible/collections`. This keeps the working copy, the key, and the collections in
+	one account that owns its own home, and removes the `sudo -u` and mode-700 workarounds that the
+	previous arrangement required. Tradeoff: the private key now sits in an interactive account
+	rather than a service account. The practical difference is small, since `labadmin` holds sudo
+	and could read the other key regardless, but it is a wider login surface for one credential.
+
 ## Status
 
 Accepted
