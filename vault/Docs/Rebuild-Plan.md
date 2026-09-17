@@ -21,7 +21,14 @@ This plan rebuilds the lab from scratch with those problems designed out, and wr
 5. Isaac can explain every step and every tool.
 
 **After the deadline:** a second build that follows the doc with zero deviations, an outside
-reviewer, the `v1.0` tag, and a VyOS firewall policy.
+reviewer, the `v1.0` tag, and a VyOS firewall policy — written with Ansible's `vyos.vyos`
+collection rather than by hand. VyOS is managed through a different execution model than the Rocky
+nodes (`ansible.netcommon.network_cli` and `ansible_network_os`, driving the CLI instead of copying
+a Python module to the target), so it needs its own playbook, its own collections, and time to
+learn properly. Deliberately out of scope for this build: vyos01's configuration is 45 lines
+already captured in [[vyos01.config]], so automating it now would buy little and cost a stage. The
+firewall policy is the right first target for it — a real network-automation artifact on a device
+that already works.
 
 ---
 
