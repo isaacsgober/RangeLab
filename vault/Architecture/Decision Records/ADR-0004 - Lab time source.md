@@ -2,7 +2,16 @@
 
 ## Status
 
-Accepted. Supersedes the 2026-09-07 choice of an undisciplined [[ansible01]] as the lab's
+Accepted, and **revised 2026-09-17** by [ADR-0007 - Internet access through
+vyos01](ADR-0007%20-%20Internet%20access%20through%20vyos01.md) and
+[ADR-0006](ADR-0006%20-%20Infrastructure%20services%20outside%20the%20hypervisor.md). What changed:
+the upstream is no longer [[Precision7730]]'s Windows Time service, and the lab's NTP server is
+[[infra01]] rather than a nested [[ansible01]]. [[infra01]] syncs from public NTP through
+[[vyos01]] and serves `10.10.10.0/24`. The rest of this record still holds — `makestep 1.0 -1` on
+chrony nodes, no invented `local stratum`, ESXi's one-shot `-g` correction, and shutting down
+rather than suspending.
+
+Originally superseded the 2026-09-07 choice of an undisciplined [[ansible01]] as the lab's
 time root (recorded in [[chrony]] and Journal/[[2026-09-07]]).
 
 ---

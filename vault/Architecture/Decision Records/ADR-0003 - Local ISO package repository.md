@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+**Superseded 2026-09-17** by [ADR-0007 - Internet access through
+vyos01](ADR-0007%20-%20Internet%20access%20through%20vyos01.md). The lab now reaches the Rocky
+repositories through [[vyos01]], so nodes use the normal repos and receive updates. The DVD is
+installation media only; no node mounts it as a repository. Kept as the record of how the
+air-gapped lab handled packages, and of what that cost.
 
 ---
 

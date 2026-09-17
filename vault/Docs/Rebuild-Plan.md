@@ -100,7 +100,7 @@ flowchart TD
 
 | Node | Runs on | Address | OS | vCPU / RAM / disk | Roles |
 |---|---|---|---|---|---|
-| vyos01 | Workstation | LAN 10.10.10.3 (VMnet10), WAN 192.168.132.3 (VMnet8) | VyOS Stream 2026.02 (1.5 Circinus) | 1 / 4 GB / 10 GB | Gateway, source NAT, DNS forwarding |
+| vyos01 | Workstation | LAN 10.10.10.3 (VMnet10), WAN 192.168.132.3 (VMnet8) | VyOS Stream 2026.02 (1.5 Circinus) | 1 / 4 GB / 20 GB | Gateway, source NAT, DNS forwarding |
 | infra01 | Workstation | 10.10.10.2 | Rocky 10.2, BIOS | 1 / 2 GB / 20 GB | DNS (dnsmasq), NTP server (chrony) |
 | ansible01 | Workstation | 10.10.10.20 | Rocky 10.2, BIOS | 2 / 4 GB / 30 GB | Ansible control node |
 | esxi01 | Workstation | 10.10.10.10 | ESXi 9.1, UEFI, nested | 6 / 64 GB / 128 GB boot + 400 GB data | Hypervisor |

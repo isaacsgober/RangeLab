@@ -102,6 +102,24 @@ SSH: `labadmin@10.10.10.2`
 
 ---
 
+## Verification
+
+First boot, 2026-09-17:
+
+| Check | Result |
+| ----- | ------ |
+| `ip -br addr`, `ip route` | `10.10.10.2/24`, default via `10.10.10.3` |
+| `ping 10.10.10.3` | Replies |
+| `sudo dnf makecache` | Metadata cache created in 12 s |
+| `timedatectl` | `Etc/UTC (UTC, +0000)`, **RTC in local TZ: no** |
+| `getenforce` | `Enforcing` |
+
+`timedatectl` also reported `System clock synchronized: no` and `NTP service: n/a`, which is
+expected — a Minimal install has no time service, and chrony arrives with the `ntp_server` role in
+Stage 3. The RTC read about a minute behind the system clock at that point.
+
+---
+
 ## Related
 
 - [[vyos01]]
