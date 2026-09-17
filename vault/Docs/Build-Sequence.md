@@ -36,12 +36,12 @@ In Workstation: **File → New Virtual Machine → Custom**.
 | Guest OS | Linux → Debian 12.x 64-bit | VyOS 1.5 is built on Debian 12 |
 | Name | `vyos01` | [[Naming Convention]] |
 | Location | `Documents\Virtual Machines\vyos01` | One folder per VM |
-| Firmware | UEFI | Same as every other node in the lab |
+| Firmware | BIOS | What this VM was built with — Workstation's default for the Debian 12 profile. VyOS boots either way. The other nodes in this lab are UEFI, so this is a deviation, recorded rather than hidden. |
 | Processors | 1 | Routing this lab needs almost nothing |
 | Memory | 4096 MB | VyOS 1.5's documented minimum |
-| Network adapter 1 | Custom → **VMnet8** | The outside (WAN) interface |
-| Network adapter 2 | Custom → **VMnet10** | The lab (LAN) interface — add it in VM Settings after creation |
-| Disk | 20 GB, single file | Minimum is 10 GB |
+| Network adapter 1 | Custom → **VMnet8**, `e1000` | The outside (WAN) interface |
+| Network adapter 2 | Custom → **VMnet10**, `e1000` | The lab (LAN) interface — add it in VM Settings after creation |
+| Disk | 20 GB, single file, SCSI (LSI Logic) | Minimum is 10 GB; thin, so it costs under 1 GB in practice |
 | CD/DVD | VyOS Stream ISO, connected at power on | Install media |
 
 Then, with the VM powered off, add one line to `vyos01.vmx`:
@@ -59,7 +59,8 @@ first boot (1.3) before trusting it.
 
 ## 1.2 Install VyOS
 
-Boot the VM from the ISO. It comes up as a live system.
+Boot the VM from the ISO. It comes up as a live system, with a banner calling the image a
+technology preview for a future LTS release — expected on a stream release, and fine for this lab.
 
 ```
 login: vyos
@@ -77,7 +78,9 @@ for the `vyos` user, and the default boot console. When it finishes:
 poweroff
 ```
 
-Disconnect the ISO in VM Settings, then power the VM back on.
+In VM Settings → CD/DVD, clear **Connect at power on** and disconnect the ISO, then power the VM
+back on. Leaving it attached leaves the installer one BIOS boot-order change away from running
+again.
 
 ## 1.3 Check which interface is which
 
@@ -161,6 +164,12 @@ save
 `compare` shows what you're about to change. `commit` makes it live. `save` writes it to
 `/config/config.boot` so it survives a reboot — commit alone does not.
 
+**What the image already sets.** The saved configuration contains more than the commands above:
+NTP (`time1`–`time3.vyos.net`, `allow-client` for RFC 1918), `syslog`, a serial console on
+`ttyS0`, per-interface offload settings, `hw-id` pinning each interface to its MAC, and
+`commit-revisions 100`. Those are VyOS defaults, not lab decisions. The lab's own time source is
+still chrony on infra01.
+
 ## 1.5 Checks
 
 ```
@@ -175,6 +184,9 @@ show nat source rules
 Expected: both interfaces up with the addresses above; a default route via `192.168.132.2`; all
 three pings succeed (the last one proves DNS works); one NAT rule listed.
 
+**Result, 2026-09-16:** all three pings replied, including `vyos.net` — which also proves the
+adapter order was right, since the replies came back through `eth0`.
+
 From the Windows host, confirm management access:
 
 ```
@@ -187,9 +199,11 @@ ssh vyos@10.10.10.3
 show configuration commands
 ```
 
-Save that output to `network/vyos01.config` in the repo, with the
-`set system login user vyos authentication encrypted-password` line removed — it contains a
-password hash.
+Save that output to [[vyos01.config]] (`vault/Network/vyos01.config.md`), with the hash on the
+`set system login user vyos authentication encrypted-password` line replaced by a placeholder —
+keeping the line shows the account exists without publishing its hash.
+
+Then write the device note, [[vyos01]], from the same output.
 
 **Not configured yet:** vyos01 has no firewall policy. Its WAN side sits on Workstation's private
 NAT network, so it isn't exposed to the internet directly. Tracked as a follow-up.
