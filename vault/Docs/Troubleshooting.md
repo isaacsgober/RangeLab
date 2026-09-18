@@ -5,7 +5,7 @@ entry; Phase 6 requires DNS, SSH, and at least one Ansible issue covered.
 
 ## Entry template
 
-### [Date] — [Short title]
+### [Date] - [Short title]
 
 **System(s) affected:**
 
@@ -21,7 +21,7 @@ entry; Phase 6 requires DNS, SSH, and at least one Ansible issue covered.
 
 ---
 
-### 2026-09-05 — DNS Resolution Failure
+### 2026-09-05 - DNS Resolution Failure
 
 **System(s) affected:**
 [[esxi01]], [[vcenter01]], [[dnsmasqhost]]
@@ -66,9 +66,9 @@ VAMI recovered without further intervention.
 
 ---
 
-### 2026-09-06 — vCenter unable to add ESXi host
+### 2026-09-06 - vCenter unable to add ESXi host
 
-> **Resolved 2026-09-15 — see that entry below.** The certificate hypothesis here was wrong.
+> **Resolved 2026-09-15 - see that entry below.** The certificate hypothesis here was wrong.
 > The real lead was already in this entry's diagnosis: `nslookup` getting NXDOMAIN from
 > 127.0.0.1, which is VCSA's embedded dnsmasq rather than systemd-resolved.
 
@@ -131,20 +131,20 @@ still carried the installation-time common name.
 
 ---
 
-### 2026-09-08 — Persistent journald not activating after Ansible deploy
+### 2026-09-08 - Persistent journald not activating after Ansible deploy
 
 **System(s) affected:**
-[[ansible01]], [[managed01]] — Phase 3 playbook (`Ansible/site.yml`)
+[[ansible01]], [[managed01]] - Phase 3 playbook (`Ansible/site.yml`)
 
 **Symptom:**
 The playbook deployed `/etc/systemd/journald.conf.d/rangelab.conf` (`Storage=persistent`)
-and its handler restarted `systemd-journald`. The run was green — every task `ok`/`changed`,
-handler fired — but `/var/log/journal/` did not exist and `journalctl` was still writing to
+and its handler restarted `systemd-journald`. The run was green - every task `ok`/`changed`,
+handler fired - but `/var/log/journal/` did not exist and `journalctl` was still writing to
 `/run/log/journal/` (volatile).
 
 **Diagnosis steps:**
 - `file rangelab.conf` → `ASCII text` (ruled out a UTF-8 BOM).
-- `cat -A rangelab.conf` → `[Journal]^M$` / `Storage=persistent^M$` — CRLF line endings. The
+- `cat -A rangelab.conf` → `[Journal]^M$` / `Storage=persistent^M$` - CRLF line endings. The
   file was authored on Windows and `scp`'d straight over, bypassing git's `eol=lf`
   normalisation (still untracked).
 - After the CRLF fix, `systemd-analyze cat-config systemd/journald.conf` confirmed journald
@@ -152,12 +152,12 @@ handler fired — but `/var/log/journal/` did not exist and `journalctl` was sti
 - `journalctl --header` still showed `/run/log/journal/…` with a correct config and a fresh
   `systemctl restart systemd-journald`.
 - `systemctl status systemd-journald` confirmed the handler's restart had actually happened.
-- Manually created `/var/log/journal` and restarted journald — still volatile.
+- Manually created `/var/log/journal` and restarted journald - still volatile.
 
 **Root cause:**
 Two issues stacked.
 1. CRLF in the drop-in: journald read `Storage=persistent\r`, did not recognise the value,
-   and fell back to `auto` — which only uses `/var/log/journal/` if it already exists.
+   and fell back to `auto` - which only uses `/var/log/journal/` if it already exists.
 2. Even with a correct config, a live `systemctl restart systemd-journald` does not complete
    the volatile→persistent migration on RHEL-family. That is a boot-time sequence:
    `systemd-tmpfiles-setup` creates the directory, `systemd-journald` starts against it,
@@ -172,24 +172,24 @@ Two issues stacked.
 
 **Verification:**
 - [[managed01]]: rebooted → `journalctl --header` shows `/var/log/journal/…`.
-- [[ansible01]]: not rebooted. Ran the updated playbook — the new task and handlers reached
+- [[ansible01]]: not rebooted. Ran the updated playbook - the new task and handlers reached
   persistent storage with no reboot. Third run: `changed=0` on both hosts, no handlers.
 
 **Notes:**
 `.gitattributes` (`* text=auto eol=lf`) only normalises during git operations. An untracked
-file copied out-of-band keeps its Windows endings — the reason this file must be committed,
+file copied out-of-band keeps its Windows endings - the reason this file must be committed,
 and an argument for `git`-based sync over raw `scp`.
 
 ---
 
-### 2026-09-08 — Duplicate machine-id on cloned node
+### 2026-09-08 - Duplicate machine-id on cloned node
 
 **System(s) affected:**
 [[managed01]] (cloned from [[ansible01]])
 
 **Symptom:**
 Both hosts' persistent journal directories were named
-`/var/log/journal/49098572b4a2433c8cae4c8ed299ac21/` — the same machine ID.
+`/var/log/journal/49098572b4a2433c8cae4c8ed299ac21/` - the same machine ID.
 `cat /etc/machine-id` was identical on both.
 
 **Diagnosis steps:**
@@ -212,11 +212,11 @@ sudo reboot
 directory was rm'd.
 
 **Notes:**
-No functional impact in the current lab (static addressing, no central journal collection), but a shared machine-id collides for anything that assumes it is unique. Clone generalization (machine-id, SSH host keys, hostname, IP) should be a documented, verified checklist — see `Ansible/README.md`.
+No functional impact in the current lab (static addressing, no central journal collection), but a shared machine-id collides for anything that assumes it is unique. Clone generalization (machine-id, SSH host keys, hostname, IP) should be a documented, verified checklist - see `Ansible/README.md`.
 
 ---
 
-### 2026-09-15 — vCenter unable to add ESXi host (resolved)
+### 2026-09-15 - vCenter unable to add ESXi host (resolved)
 
 Resolves the 2026-09-06 entry above. Investigated 2026-09-14 → 2026-09-15.
 
@@ -238,7 +238,7 @@ Some attempts left a host object in the inventory, stuck in `DISCONNECTED`.
 
 **Diagnosis steps:**
 
-Traced the 503. The failing call was `/hgw/host-NNNN/api` — vCenter's host gateway
+Traced the 503. The failing call was `/hgw/host-NNNN/api` - vCenter's host gateway
 (`vmware-envoy-hgw`) forwarding a vAPI request to the host. Envoy's access log showed it
 never picked a destination at all:
 ```
@@ -256,7 +256,7 @@ nslookup esxi01.rangelab.local 127.0.0.1    → NXDOMAIN
 nslookup esxi01.rangelab.local 10.10.10.2   → 10.10.10.10
 ```
 `/etc/resolv.conf` lists `nameserver 127.0.0.1` first. `ss -lnup` showed that 127.0.0.1:53
-is **VCSA's own embedded dnsmasq**, not systemd-resolved (whose stub is 127.0.0.53 — this
+is **VCSA's own embedded dnsmasq**, not systemd-resolved (whose stub is 127.0.0.53 - this
 corrects the 2026-09-06 note). Envoy queries the `resolv.conf` nameservers itself instead of
 going through NSS. `getent` succeeded even when run as the `envoy-hgw` user, while the
 gateway still had no endpoint. `curl` through VCSA's Envoy system proxy showed the same
@@ -360,7 +360,7 @@ blocker: the add kept failing the same way after each fix, until the dnsmasq cha
 
 ---
 
-### 2026-09-15 — Lab clocks 3 h 49 m apart
+### 2026-09-15 - Lab clocks 3 h 49 m apart
 
 **System(s) affected:**
 [[ansible01]], [[managed01]], [[vcenter01]], [[esxi01]], [[dnsmasqhost]], [[Precision7730]]
@@ -437,7 +437,7 @@ then selected the host and stepped +13768.6 s, and its clients followed.
 
 ---
 
-### 2026-09-15 — dnsmasqhost answered NXDOMAIN to AAAA queries
+### 2026-09-15 - dnsmasqhost answered NXDOMAIN to AAAA queries
 
 Source of the vCenter add-host failure above. Tracked as Linear ISA-6.
 
@@ -542,7 +542,7 @@ for any lab host.
 
 ---
 
-### 2026-09-15 — esxi01 DCUI shows the short hostname (expected behavior)
+### 2026-09-15 - esxi01 DCUI shows the short hostname (expected behavior)
 
 **System(s) affected:**
 [[esxi01]]
@@ -605,7 +605,7 @@ sent no DNS queries for the host.
 
 ---
 
-### 2026-09-15 — Root SSH to vcenter01 rejected with the correct password
+### 2026-09-15 - Root SSH to vcenter01 rejected with the correct password
 
 Happened 2026-09-14; diagnosed 2026-09-15 from vcenter01's journal. All times are UTC.
 
@@ -684,3 +684,96 @@ On 2026-09-15, `faillock --user root` shows 0 failures, and root SSH logins are 
   password gets through.
 - Check the OpenSSH version before blaming per-source penalties (`sshd -V`; they need 9.8 or
   later). They were the cause on the Rocky nodes but couldn't be on vcenter01.
+---
+
+### 2026-09-17 - vyos01's DNS forwarder returned SERVFAIL to every client
+
+**System(s) affected:**
+[[vyos01]], [[infra01]]
+
+**Symptom:**
+`sudo dnf makecache` on a freshly installed infra01 failed with
+`Could not resolve host: mirrors.rockylinux.org`. vyos01 itself resolved names normally.
+
+**Diagnosis steps:**
+On infra01: `/etc/resolv.conf` held `nameserver 10.10.10.3` and `search rangelab.internal`; the
+default route was via `10.10.10.3`; `ping 10.10.10.3` and `ping 1.1.1.1` both replied. So
+addressing, routing, and NAT were all working, and only name resolution failed.
+On vyos01: `show dns forwarding statistics` showed the recursor running with 26 cached entries.
+`dig @192.168.132.2 rockylinux.org +short` answered `76.223.126.88` - upstream worked.
+`dig @10.10.10.3 rockylinux.org +short` returned nothing - the forwarder did not.
+`dig @10.10.10.3 rockylinux.org` gave `status: SERVFAIL` after **1505 ms**.
+First hypothesis, wrong: DNSSEC records could not cross Workstation's NAT DNS proxy.
+`dig @192.168.132.2 . DNSKEY +dnssec` disproved it - 1143 bytes came back with RRSIGs and EDNS
+intact. What that query did show was its own cost: **2201 ms**.
+
+**Root cause:**
+A latency budget, not a misconfiguration. `service dns forwarding` is a PowerDNS Recursor, which
+validates DNSSEC - one client query becomes several upstream round trips to build the chain - and
+its default `network-timeout` is 1500 ms. Workstation's NAT DNS proxy at `192.168.132.2` answers,
+but slowly enough (2201 ms measured cold) that the recursor gave up and returned SERVFAIL. The
+router's own lookups were unaffected because they use `system name-server` and go straight out,
+one query, no validation chain, with dig's far longer timeout.
+
+**Fix:**
+Point the forwarder at public resolvers instead, reached across the same NAT path:
+
+```
+delete service dns forwarding name-server 192.168.132.2
+set service dns forwarding name-server 1.1.1.1
+set service dns forwarding name-server 1.0.0.1
+set system name-server 1.1.1.1
+```
+
+`system name-server` was moved as well, so the router's own lookups and the lab's take the same
+path and Workstation's DNS proxy is out of the lab entirely.
+
+**Verification:**
+`dig @10.10.10.3 rockylinux.org` → `status: NOERROR`, 32 ms.
+`sudo dnf makecache` on infra01 → metadata cache created in 12 s.
+
+**Lesson:**
+Stage 1's checks proved the *router* could resolve and stopped there. `system name-server` and
+`service dns forwarding` are independent settings, so that proved nothing about clients. A
+`dig @10.10.10.3` from the router would have caught this before infra01 existed; it is now a
+required check in [[Build-Sequence]] 1.5.
+
+---
+
+### 2026-09-18 - The DNS server resolves its own name to a link-local address
+
+**System(s) affected:**
+[[infra01]]
+
+**Symptom:**
+After the `dns` role converged, `getent hosts infra01.rangelab.internal` returned
+`fe80::20c:29ff:fedd:bd21` when run on infra01, while the same command on [[ansible01]] returned
+`10.10.10.2`.
+
+**Diagnosis steps:**
+`dig infra01.rangelab.internal` against `10.10.10.2` returned the correct A record from both nodes,
+so dnsmasq was answering correctly.
+`grep ^hosts: /etc/nsswitch.conf` showed `files dns myhostname`.
+`getent ahostsv4 infra01.rangelab.internal` on infra01 returned `10.10.10.2`.
+
+**Root cause:**
+Name resolution order, not DNS. `getent hosts` attempts IPv6 first. dnsmasq answers the AAAA query
+with NODATA, which is correct - `host-record` makes the name exist for every type while defining
+only an address - and NSS treats an empty result as "not found here" and continues to the next
+source. `nss-myhostname` answers for the machine's own hostname from its interface addresses,
+returning the link-local address. The first successful source wins, so that is what prints.
+
+On every other node `nss-myhostname` declines, because the name is not its own, and the IPv4 answer
+from DNS is returned.
+
+**Fix:**
+None required. The records are correct, and no service resolves infra01 by name from infra01.
+An `/etc/hosts` entry would not change this result: the AAAA path would still fall through to
+`nss-myhostname`.
+
+**Verification:**
+`getent ahostsv4 infra01.rangelab.internal` returns `10.10.10.2` on the DNS server.
+
+**Lesson:**
+`getent hosts` is a test of the whole NSS stack, not of DNS. Use `dig` to test a name server and
+`getent ahostsv4` when the address family matters.

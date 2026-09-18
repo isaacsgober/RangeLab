@@ -1,0 +1,5 @@
+# Managed by Ansible - local edits will be overwritten
+
+nameserver {{ hostvars[dns_server_host].ansible_host }}
+search {{ lab_domain }}
+options timeout:2 attempts:2

@@ -1,67 +1,69 @@
 # RangeLab Ansible
 
-Phase 3 control setup — configuration management for the two Rocky nodes.
+Configuration management for the lab's Rocky nodes. Design and reasoning live in the vault:
+[Build-Sequence](../vault/Docs/Build-Sequence.md) Stage 3 for how this was built,
+[Development-Workflow](../vault/Docs/Development-Workflow.md) for how it is worked on.
 
 ## Layout
 
 ```
 Ansible/
 ├── ansible.cfg               points at inventory/hosts.yml
-├── inventory/hosts.yml       management_nodes (ansible01), managed_nodes (managed01)
-├── group_vars/
-│   ├── all.yml               base_packages
-│   └── management_nodes.yml  base_packages override (adds sysstat)
-├── files/                    labadmin.pub, journald-rangelab.conf
-└── site.yml                  the playbook
+├── bootstrap.yml             creates the ansible service account on a new node
+├── site.yml                  applies common, ntp, dns
+├── inventory/hosts.yml       hosts with addresses; groups named for services
+├── group_vars/all.yml        base utilities and lab-wide values
+└── roles/
+    ├── common/               base packages, persistent journal
+    ├── ntp/                  chrony: server on ntp_servers, client elsewhere
+    └── dns/                  dnsmasq on dns_servers, resolver config everywhere
 ```
+
+## Inventory
+
+Each host is declared once with its `ansible_host`; groups carry membership only. Group names
+describe the service a member provides, so a node's role is declared in one place and roles derive
+the rest:
+
+```yaml
+dns_server_host: "{{ groups['dns_servers'] | first }}"
+ntp_server_host: "{{ groups['ntp_servers'] | first }}"
+```
+
+DNS records are generated from this inventory, so adding a node gives it records on the next
+converge.
 
 ## Running
 
-On **ansible01**, as the **`ansible`** account, from `~ansible/Ansible`.  `ansible` has the outbound key, passwordless sudo, and the `known_hosts` entries.
+From `~/RangeLab/Ansible` on ansible01, as `labadmin`. Ansible connects to managed nodes as the
+`ansible` service account using the key in `~labadmin/.ssh/id_ed25519`.
 
 ```bash
-ssh ansible@ansible01.rangelab.local
-cd ~/Ansible
-ansible-playbook site.yml --syntax-check
-ansible-playbook site.yml --check          # dry run
+ansible-lint                               # whole project
+ansible-playbook site.yml --check --diff   # dry run
 ansible-playbook site.yml                  # apply
-ansible-playbook site.yml --tags update    # update packages
+ansible-playbook site.yml --tags update    # opt-in package update
 ```
 
-`--tags update` runs the gated full `dnf update`; does effectively nothing with the offline DVD repo, kept for future update path. Default runs skip it.
+A converged run reports `changed=0` and fires no handlers.
 
-## Getting files onto ansible01
+## Bootstrapping a new node
 
-Authored on the Windows host, copied over. Wipe the old copy first to
-avoid stale files and scp nesting.
+A node with no `ansible` account is bootstrapped once, as `labadmin` with password authentication:
 
-```powershell
-ssh ansible@ansible01.rangelab.local "rm -rf /home/ansible/Ansible"
-scp -r "C:\Users\isaac\Documents\RangeLab\Ansible" ansible@ansible01.rangelab.local:/home/ansible/
+```bash
+ssh labadmin@<address> exit                # accept the host key first
+ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K
+ansible all -m ping
 ```
 
-## What site.yml does
-Ensures:
-- `base_packages` (from `group_vars`)
-- `labadmin` admin account: user in `wheel`, `.ssh/` dir, authorized key from `files/labadmin.pub`
-- journald drop-in: persistent storage, 750M cap; `file` tasks for the config dir and
-  `/var/log/journal`; handlers restart then flush journald on change
-- `dnf update` (gated; see `--tags update`)
+`-e` rather than `-u`: command-line values lose to inventory variables, extra vars win.
 
-## Manual steps — not automated
+## Ansible on the control node
 
-- **`sudo passwd labadmin`** on each node. Ansible does not set the password (no hash in the
-  repo). Record it in `creds.md`.
-- **Clone generalization** — before adding a cloned VM to the inventory, give it its own:
-  hostname, IP, SSH host keys (`rm /etc/ssh/ssh_host_*` then `ssh-keygen -A`),
-  `/etc/machine-id` (`rm /etc/machine-id && systemd-machine-id-setup`). See
-  `../vault/Docs/Troubleshooting.md`, 2026-09-08.
+`ansible-core` and the linters are installed with pip into `/opt/ansible`, which keeps the runtime
+and `ansible-lint` on one version. `dnf update` does not touch them:
 
-## Known gaps
-
-- **`ansible-lint`, `yamllint`, `ansible.posix`** — not on the Rocky DVD, no offline install
-  path yet. `authorized_key` (from `ansible.posix`) was worked around with `file` + `copy`;
-  lint (checklist L59) is deferred until this is solved.
-- **Line endings** — playbook and config files must be LF. `.gitattributes` (`eol=lf`)
-  enforces it for tracked files; an untracked file `scp`'d with CRLF will break. See
-  `../vault/Docs/Troubleshooting.md`, 2026-09-08.
+```bash
+sudo /opt/ansible/bin/pip install -U ansible-core ansible-lint
+```

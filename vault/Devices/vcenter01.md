@@ -1,5 +1,9 @@
 # vcenter01
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 5 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 To host [[vCenter]]

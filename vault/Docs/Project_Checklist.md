@@ -10,7 +10,7 @@ Target progression:
 
 Do not add a technology to the resume merely because it was installed. Add it after it has been used, tested, troubleshot, and documented.
 
-## Phase 0 — Preserve and document the current baseline
+## Phase 0 - Preserve and document the current baseline
 
 - [x] Record the ESXi host version, vCenter version, VM names, IP addresses, virtual switches, port groups, and VLANs in use.
 - [x] Draw a simple logical network diagram showing the ESXi host, vCenter, Rocky Linux DNS VM, router/gateway, management network, and guest systems.
@@ -21,7 +21,7 @@ Do not add a technology to the resume merely because it was installed. Add it af
 
 **Completion evidence:** A current diagram, sanitized configuration notes, successful DNS test results, and a brief recovery procedure.
 See [[Phase 0 Screenshots]].
-## Phase 1 — Build a Git-backed documentation repository
+## Phase 1 - Build a Git-backed documentation repository
 
 - [x] Create a repository named something like `virtualized-infrastructure-homelab`.
 - [x] Add a `README.md` describing the project goal, architecture, hardware/software used, and current status.
@@ -34,7 +34,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** A readable repository with meaningful commit history and no sensitive information.
 
-## Phase 2 — Add Linux systems for automation practice
+## Phase 2 - Add Linux systems for automation practice
 
 - [x] Deploy one Rocky Linux VM as an Ansible control node.
 - [x] Deploy at least one separate Rocky Linux VM as a managed node.
@@ -47,7 +47,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** The control node can resolve and connect to the managed node by hostname using SSH keys.
 
-## Phase 3 — Configure the managed node with Ansible
+## Phase 3 - Configure the managed node with Ansible
 
 - [x] Install Ansible on the control node.
 - [x] Create a YAML inventory using DNS hostnames rather than hard-coded ad hoc commands.
@@ -62,7 +62,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** A repeatable playbook, successful idempotency check, and documented troubleshooting example.
 
-## Phase 4 — Add a small Bash or Python utility
+## Phase 4 - Add a small Bash or Python utility
 
 - [x] Choose one bounded task, such as checking DNS resolution, testing TCP ports, reporting VM reachability, or validating required services.
 - [x] Implement the utility in Bash or Python with clear comments and readable output.
@@ -73,7 +73,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** A reusable script with documented inputs, outputs, error handling, and test cases.
 
-## Phase 5 — Exercise an API
+## Phase 5 - Exercise an API
 
 - [x] Choose a safe read-only API, preferably the vCenter REST API if available in the lab.
 - [x] Use `curl` first to authenticate and request a small piece of inventory data, such as VM names or power state.
@@ -84,7 +84,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** A sanitized example showing successful read-only API interaction and safe credential handling.
 
-## Phase 6 — Package the project for review
+## Phase 6 - Package the project for review
 
 - [ ] Update the architecture diagram to include the control and managed nodes.
 - [ ] Write a concise build sequence that another person could follow.
@@ -97,7 +97,7 @@ See [[Phase 0 Screenshots]].
 
 **Completion evidence:** A reviewer can understand the architecture, reproduce the core configuration, and see proof that the automation was tested.
 
-## Optional extension — Safe security fundamentals
+## Optional extension - Safe security fundamentals
 
 - [ ] Apply basic Rocky Linux hardening appropriate for a lab, such as least-privilege accounts, SSH settings, firewall rules, and timely updates.
 - [ ] Automate the selected settings with Ansible.

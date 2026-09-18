@@ -1,68 +1,62 @@
 # NTP Hierarchy
 
-How time reaches every node in Range Lab. Arrows point from a time source to its client. Boxes
-show where each node runs. Decision and rationale:
-[ADR-0004](Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
+How time reaches every node in Range Lab. Arrows point from a time source to its client. Decisions:
+[ADR-0004](Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md), revised by
+[ADR-0006](Decision%20Records/ADR-0006%20-%20Infrastructure%20services%20outside%20the%20hypervisor.md)
+and [ADR-0007](Decision%20Records/ADR-0007%20-%20Internet%20access%20through%20vyos01.md).
 
 ```mermaid
 flowchart TD
-    INET["time.windows.com<br/>internet time server"]
-
-    subgraph HOSTBOX["Precision7730 (host)"]
-        W32["Windows Time · 10.10.10.1<br/>NTP client and server<br/>stratum 5"]
-    end
+    POOL["2.rocky.pool.ntp.org<br/>public NTP pool"]
 
     subgraph WS["Workstation guests"]
-        DNSQ["dnsmasqhost · 10.10.10.2<br/>chrony client<br/>stratum 6"]
-        subgraph ESXIBOX["esxi01 · nested ESXi"]
-            ESXNTP["esxi01 host · 10.10.10.10<br/>ntpd client<br/>stratum 7"]
-            subgraph NESTED["VMs on esxi01"]
-                ANS["ansible01 · 10.10.10.20<br/>chrony server and client<br/>stratum 6"]
-                MAN["managed01 · 10.10.10.21<br/>chrony client<br/>stratum 7"]
-                VC["vcenter01 · 10.10.10.15<br/>ntpd client (VAMI)<br/>stratum 7"]
-            end
+        VYOS["vyos01 · 10.10.10.3<br/>gateway and source NAT<br/>not a lab time source"]
+        INFRA["infra01 · 10.10.10.2<br/>chrony server and client<br/>stratum 3"]
+        ANS["ansible01 · 10.10.10.20<br/>chrony client<br/>stratum 4"]
+        subgraph ESXIBOX["esxi01 · nested"]
+            ESXNTP["esxi01 host · 10.10.10.10<br/>ntpd client"]
+            VC["vcenter01 · 10.10.10.15<br/>ntpd client (VAMI)"]
+            MAN["managed01 · 10.10.10.21<br/>chrony client"]
         end
     end
 
-    INET -->|"NTP over the internet"| W32
-    W32 -->|"UDP 123 · firewall allows 10.10.10.0/24"| ANS
-    W32 -->|"UDP 123"| DNSQ
-    ANS -->|"UDP 123"| MAN
-    ANS -->|"UDP 123"| VC
-    ANS -->|"UDP 123"| ESXNTP
+    POOL -->|"UDP 123, translated by vyos01"| INFRA
+    INFRA -->|"UDP 123"| ANS
+    INFRA -->|"UDP 123"| ESXNTP
+    INFRA -->|"UDP 123"| VC
+    INFRA -->|"UDP 123"| MAN
 ```
+
+Nodes inside esxi01 are configured as their stages build them.
 
 ---
 
 ## Nodes
 
-| Node | Runs on | Software | Syncs from | Serves | Key settings | Stratum |
-| ---- | ------- | -------- | ---------- | ------ | ------------ | ------- |
-| [[Precision7730]] | physical host | Windows Time | `time.windows.com` | VMnet10 | `NtpServer` enabled, `AnnounceFlags 5`, poll interval 6–10 | 5 |
-| [[ansible01]] | [[esxi01]] | chrony | `10.10.10.1` | `10.10.10.0/24` | `makestep 1.0 -1`, `allow 10.10.10.0/24` | 6 |
-| [[dnsmasqhost]] | VMware Workstation | chrony | `10.10.10.1` | — | `makestep 1.0 -1` | 6 |
-| [[managed01]] | [[esxi01]] | chrony | `ansible01.rangelab.local` | — | `makestep 1.0 -1` | 7 |
-| [[vcenter01]] | [[esxi01]] | ntpd (VAMI timesync: NTP) | `ansible01.rangelab.local` | — | `tinker panic 0` | 7\* |
-| [[esxi01]] | VMware Workstation | ntpd | `ansible01.rangelab.local` | — | runs with `-g` | 7\* |
+| Node | Runs on | Software | Syncs from | Serves | Key settings |
+| ---- | ------- | -------- | ---------- | ------ | ------------ |
+| [[infra01]] | VMware Workstation | chrony | public pool, through [[vyos01]] | `10.10.10.0/24` | `allow 10.10.10.0/24`, `makestep 1.0 -1` |
+| [[ansible01]] | VMware Workstation | chrony | `10.10.10.2` | - | `makestep 1.0 -1` |
+| [[esxi01]] | VMware Workstation | ntpd | `10.10.10.2` | - | runs with `-g`, one startup correction only |
+| [[vcenter01]] | [[esxi01]] | ntpd (VAMI) | `10.10.10.2` | - | - |
+| [[managed01]] | [[esxi01]] | chrony | `10.10.10.2` | - | `makestep 1.0 -1` |
 
-Strata marked \* weren't read directly. A client is always one stratum below its source, so they
-follow from ansible01's stratum 6. The other strata were read with `chronyc` on 2026-09-15. Strata
-can change if the upstream changes.
+A client is one stratum below its source. Strata move with the upstream the pool selects.
 
 ---
 
-## Why it's shaped this way
+## Why it is shaped this way
 
-- **One source with internet access.** Precision7730 is the only machine that can reach the
-  internet, and every VM runs on it, so it's up whenever the lab is.
-- **dnsmasqhost bypasses ansible01.** It runs beside esxi01 in Workstation. When esxi01 is
-  suspended, ansible01's clock freezes, and a client following it gets dragged backward. Taking
-  time straight from the host avoids that.
-- **esxi01 takes time from a VM it hosts.** At boot, ansible01 isn't running yet, so esxi01 keeps
-  the time from its virtual hardware clock, which Workstation sets from the host. Autostart then
-  starts ansible01 first, and ntpd syncs to it once it's up.
-- **Single point of failure.** If Windows Time stops on Precision7730, nothing corrects the lab,
-  and its clocks drift together.
+- **The time source sits outside the hypervisor.** Suspending [[esxi01]] freezes the VMs inside it.
+  When the lab's clock lived there, a suspend split the lab by 3 h 49 m. infra01 runs beside esxi01
+  in Workstation, so hypervisor state cannot stop the lab's clock.
+- **The upstream is real.** The pre-rebuild lab had no reachable time source and invented
+  `local stratum 10`, which guaranteed only that nodes agreed with each other. Internet access
+  through [[vyos01]] removed the need for that.
+- **Clients point at an address, not a name.** Time does not depend on DNS, so a DNS fault cannot
+  also become a time fault.
+- **The Windows host is not involved.** It was the upstream between 2026-09-15 and the rebuild;
+  its NTP server setting and the VMnet10 firewall rule are no longer used by the lab.
 
 ---
 
@@ -70,20 +64,18 @@ can change if the upstream changes.
 
 | Where | Command | Healthy |
 | ----- | ------- | ------- |
-| Precision7730 | `w32tm /query /status` | `Source: time.windows.com,0x8` |
-| ansible01, dnsmasqhost, managed01 | `chronyc sources` | `^*` on the configured source |
-| vcenter01, esxi01 | `ntpq -p` | `*` on `ansible01` |
+| Any chrony node | `chronyc sources` | `^*` on the configured source |
+| [[infra01]] | `chronyc clients` | Each lab node listed with a non-zero packet count |
+| [[esxi01]], [[vcenter01]] | `ntpq -p` | `*` on `10.10.10.2` |
 
 ---
 
 ## Related
 
 - [[chrony]]
-- [[Precision7730]]
+- [[infra01]]
+- [[vyos01]]
 - [[ansible01]]
-- [[dnsmasqhost]]
-- [[managed01]]
-- [[vcenter01]]
 - [[esxi01]]
-- [[VM Layout]]
+- [[Build-Sequence]]
 - [[Known-Issues]]

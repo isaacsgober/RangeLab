@@ -1,5 +1,9 @@
 # managed01
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 6 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 Ansible managed node.
@@ -64,7 +68,7 @@ SSH: `<user>@managed01.rangelab.local`
 ---
 ## Services
 
-- [[chrony]] — NTP client of [[ansible01]]
+- [[chrony]] - NTP client of [[ansible01]]
 
 ---
 ## Notes
@@ -81,7 +85,7 @@ This machine was cloned from [[ansible01]].
 
 `ansible-core` is installed rather than the full `ansible` package.
 
-`~ansible/.ssh/authorized_keys` holds [[ansible01]]'s Ed25519 public key — the `ansible` account is reachable by key from the control node (Phase 2 / [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account)).
+`~ansible/.ssh/authorized_keys` holds [[ansible01]]'s Ed25519 public key - the `ansible` account is reachable by key from the control node (Phase 2 / [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account)).
 
 Time is synced from [[ansible01]] via [[chrony]] (`server ansible01.rangelab.local iburst`, `makestep 1.0 -1`).
 

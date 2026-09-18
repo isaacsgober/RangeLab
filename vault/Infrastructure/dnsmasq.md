@@ -2,13 +2,14 @@
 
 ## Purpose
 
-To provide DNS service to machines in Range Lab
+DNS for Range Lab: authoritative for `rangelab.internal` and `10.10.10.in-addr.arpa`, forwarding
+everything else to [[vyos01]].
 
 ---
 
 ## Host
 
-[[dnsmasqhost]]
+[[infra01]]
 
 ## IP
 
@@ -18,85 +19,73 @@ To provide DNS service to machines in Range Lab
 
 ## Ports
 
-53/TCP
-53/UDP
+53/TCP, 53/UDP. Opened in firewalld as the `dns` service by the `dns` role.
 
 ---
 
 ## Configuration
 
-**DNS domain:** rangelab.local
+`/etc/dnsmasq.conf`, generated in full by the `dns` role from
+`Ansible/roles/dns/templates/dnsmasq.conf.j2`. The file carries a header saying so; local edits are
+replaced on the next converge.
 
-**Interface:** ens160 (`interface=ens160`, `bind-dynamic`)
+| Directive | Effect |
+| --------- | ------ |
+| `listen-address` | The lab address and loopback only |
+| `bind-dynamic` | Bind interfaces as they appear, so dnsmasq does not fail when it starts before the interface is up |
+| `local=/rangelab.internal/`, `local=/10.10.10.in-addr.arpa/` | Authoritative for both zones: never forwarded, unknown names answered NXDOMAIN |
+| `no-resolv` | Ignore `/etc/resolv.conf` when choosing upstreams. Required, because that file points every node, including this one, at dnsmasq |
+| `server=10.10.10.3` | Single upstream: [[vyos01]]'s forwarder |
+| `domain-needed`, `bogus-priv` | Unqualified names and private reverse lookups are not sent upstream |
+| `no-hosts` | `/etc/hosts` is not served; generated records are the only source |
 
-**How records are defined:** each lab host is one `host-record` line in `/etc/dnsmasq.conf`.
-That single line creates both the host's A record and its PTR record.
+---
 
-```
-domain=rangelab.local
-local=/rangelab.local/            # answer these zones from local data only; never forward
-local=/10.10.10.in-addr.arpa/
-host-record=dnsmasqhost.rangelab.local,10.10.10.2
-host-record=esxi01.rangelab.local,10.10.10.10
-host-record=vcenter01.rangelab.local,10.10.10.15
-host-record=ansible01.rangelab.local,10.10.10.20
-host-record=managed01.rangelab.local,10.10.10.21
-```
+## How records are defined
 
-To add a host, add a `host-record=<fqdn>,<ip>` line, run `dnsmasq --test`, then
-`systemctl restart dnsmasq`. A name defined this way exists for every record type, so a query
-for a type it doesn't have (AAAA, MX) gets `NOERROR` with no answer.
+One `host-record=<fqdn>,<address>` line per host, generated from the Ansible inventory. A single
+line creates both the A record and the PTR, and makes the name exist for every query type, so a
+query for a type it does not have returns NOERROR with no answer rather than NXDOMAIN.
 
-Don't use `address=/<name>/<ip>`. It is a rule for a whole domain: it also answers for every
-subdomain, and it made AAAA queries for lab hosts return NXDOMAIN until 2026-09-15 — see
-[[Troubleshooting]].
+Two sources feed the generation:
 
-**Forward DNS records:**
+- **Managed nodes** come from `groups['all']` and each host's `ansible_host`. Adding a node to the
+  inventory gives it DNS on the next converge.
+- **Unmanaged hosts** come from `dns_extra_records` in `group_vars/all.yml`. [[vyos01]] is there
+  now; esxi01, vcenter01, and managed01 join as they are built, until they are managed nodes.
 
-| Hostname                     | IP Address    |
-| ---------------------------- | ------------- |
-| `dnsmasqhost.rangelab.local` | `10.10.10.2`  |
-| `esxi01.rangelab.local`      | `10.10.10.10` |
-| `vcenter01.rangelab.local`   | `10.10.10.15` |
-| `ansible01.rangelab.local`   | `10.10.10.20` |
-| `managed01.rangelab.local`   | `10.10.10.21` |
+There is no list of records in this document on purpose. The inventory is the source; a copy here
+would drift, which is what happened before the rebuild.
 
-**Reverse DNS (PTR) records:**
-
-|               |                              |
-| ------------- | ---------------------------- |
-| IP Address    | PTR Hostname                 |
-| `10.10.10.2`  | `dnsmasqhost.rangelab.local` |
-| `10.10.10.10` | `esxi01.rangelab.local`      |
-| `10.10.10.15` | `vcenter01.rangelab.local`   |
-| `10.10.10.20` | `ansible01.rangelab.local`   |
-| `10.10.10.21` | `managed01.rangelab.local`   |
-
-**Configuration file:**
-
-`/etc/dnsmasq.conf`
+**Do not use `address=/<name>/<ip>`.** It is a domain rule that answers only A queries, and since
+dnsmasq 2.86 other types fall through to the next rule. With `local=` present that means NXDOMAIN
+for AAAA. See [[Troubleshooting]] (2026-09-15).
 
 ---
 
 ## Dependencies
 
-[[dnsmasqhost]]
-	interface ens160
+- [[infra01]] running `dnsmasq`
+- [[vyos01]] reachable at `10.10.10.3` for anything outside the lab zone
+
 ---
 
 ## Notes
 
-dnsmasq is config'd such that it should start on boot of [[dnsmasqhost]].
+Clients reach this service because the `dns` role writes `/etc/resolv.conf` and stops
+NetworkManager from managing it. See [[Build-Sequence]] Stage 3.
 
-The configuration from before the 2026-09-15 `host-record` change is saved on dnsmasqhost as
-`/etc/dnsmasq.conf.bak-rangelab`.
+`dnsmasq --test` validates a configuration file without starting the service.
+
+On [[infra01]] itself, `getent hosts` for its own name answers from `nss-myhostname` rather than
+from DNS. See [[Troubleshooting]] (2026-09-18).
 
 ---
 
 ## Related
 
-[[dnsmasqhost]]
-[[VMnet10]]
-[[vcenter01]]
-[[vCenter]]
-[[esxi01]]
+- [[infra01]]
+- [[vyos01]]
+- [[VMnet10]]
+- [[Build-Sequence]]
+- [[IP Index]]

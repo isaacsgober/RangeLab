@@ -1,0 +1,12 @@
+# Managed by Ansible - local edits will be overwritten
+
+{% if 'ntp_servers' in group_names %}
+pool 2.rocky.pool.ntp.org iburst
+allow {{ lab_network }}
+{% else %}
+server {{ hostvars[ntp_server_host].ansible_host }} iburst
+{% endif %}
+
+driftfile /var/lib/chrony/drift
+makestep 1.0 -1
+rtcsync

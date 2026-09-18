@@ -1,0 +1,52 @@
+---
+- name: Install base utils
+  ansible.builtin.dnf:
+    name: "{{ base_utils }}"
+    state: present
+  tags:
+    - always
+
+- name: Create journald dropin directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - always
+
+- name: Create journal log directory
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: "2755"
+  tags:
+    - always
+  notify:
+    - Restart journald
+    - Flush journald
+
+- name: Deploy journald config
+  ansible.builtin.copy:
+    src: journald-rangelab.conf
+    dest: /etc/systemd/journald.conf.d/rangelab.conf
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - always
+  notify:
+    - Restart journald
+    - Flush journald
+
+# Run with `--tags update`.
+- name: Update all packages  # noqa: package-latest
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+  tags:
+    - never
+    - update

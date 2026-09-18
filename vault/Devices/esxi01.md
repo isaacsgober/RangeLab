@@ -1,5 +1,9 @@
 # esxi01
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 Nested ESXi lab host
@@ -106,7 +110,7 @@ Disk 2
 
 2026-09-15:
 	Resized from 8 to 12 vCPUs in VMware Workstation.
-	Added to vCenter by FQDN once the add-host failure was resolved — see [[Troubleshooting]] (2026-09-15).
+	Added to vCenter by FQDN once the add-host failure was resolved - see [[Troubleshooting]] (2026-09-15).
 	Autostart enabled. On boot it starts [[ansible01]], then [[managed01]], then [[vcenter01]]. On host shutdown it shuts them down in reverse order (120 s default delays; vcenter01 gets 600 s). Shut the host down from the Host Client or with Workstation's Shut Down Guest, never Power Off.
 	NTP: ntpd syncs from [[ansible01]]. ESXi's ntpd (`-g`) accepts one large correction, at startup; once running it refuses corrections over 1000 s. See [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
 	The DCUI shows `https://esxi01/` rather than the FQDN. That's expected: it prints the configured host name, which can't include the domain. See [[Troubleshooting]] (2026-09-15).

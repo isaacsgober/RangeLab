@@ -15,7 +15,7 @@ The goal is to progress through each stage while continuously expanding the same
 
 ---
 
-## Stage 01 — Substrate
+## Stage 01 - Substrate
 
 - [x] Build a lab host and install ESXi
 	- [x] Deploy vCenter Server
@@ -24,23 +24,23 @@ The goal is to progress through each stage while continuously expanding the same
 	- [ ] Segment both labs into VLANs (vSphere port group and Proxmox Linux bridge)
 
 **Deliverable**
-Two hand-built labs with real VLAN segmentation and working inter-VLAN routing, which you can explain packet by packet — including what each hypervisor's virtual switch does at each hop, and where the two differ.
+Two hand-built labs with real VLAN segmentation and working inter-VLAN routing, explainable packet by packet - including what each hypervisor's virtual switch does at each hop, and where the two differ.
 
 ---
 
-## Stage 02 — Automation
+## Stage 02 - Automation
 
 - [ ] Rebuild the Stage 01 lab as [Ansible](https://docs.ansible.com/) entirely
-- [ ] Automate vCenter using Ansible — the `community.vmware` and `vmware.vmware_rest` collections. 
+- [ ] Automate vCenter using Ansible - the `community.vmware` and `vmware.vmware_rest` collections. 
 - [ ] Achieve idempotent deployments (Destroy it and re-run until the second run reports `changed=0`)
-- [ ] Learn [Jinja2](https://jinja.palletsprojects.com/) — loops, filters, conditionals, and variable precedence
+- [ ] Learn [Jinja2](https://jinja.palletsprojects.com/) - loops, filters, conditionals, and variable precedence
 
 **Deliverable**
 The lab, reproducible from an empty hypervisor with one command, and idempotent. "Run it twice, expect zero changes."
 
 ---
 
-## Stage 03 — Depth & Capstone
+## Stage 03 - Depth & Capstone
 
 - [ ] Build a vSphere Distributed Switch
 	- [ ] Move the lab's networking to vSphere Distributed Switch
@@ -52,7 +52,7 @@ The capstone range, in version control, with CI passing.
 
 ---
 
-## Stage 04 — Polish & Credibility
+## Stage 04 - Polish & Credibility
 
 - [ ] Windows Server & Active Directory automation
 	- [ ]  automate a domain join
@@ -67,7 +67,7 @@ The capstone range, in version control, with CI passing.
 	- [ ] Get a merge request reviewed by a stranger
 
 **Deliverable**
-Public review history. A personal repo that shows you can write code; a merged upstream contribution with review comments on it  that shows you can work on a team (this is the harder thing to prove).
+Public review history. A personal repo demonstrates the ability to write code; a merged upstream contribution with review comments on it demonstrates the ability to work on a team, which is the harder thing to prove.
 
 ---
 
@@ -98,11 +98,11 @@ Public review history. A personal repo that shows you can write code; a merged u
 # Capstone Goal
 
 By the end of the Range Lab, the environment should include:
-- A **topology specification** in YAML or XML — hosts, networks, roles — as the single source of truth
+- A **topology specification** in YAML or XML - hosts, networks, roles - as the single source of truth
 - A generator that turns that spec into an **Ansible inventory**, so the topology is authored once and consumed everywhere
 - Provisioning for four nodes: a **Windows domain controller**, a **Linux target**, a **router**, and an **attacker box**
 - Real network segmentation between them, defined in the spec rather than clicked into a UI
-- Target **vSphere** as the primary platform, with Proxmox as the place you prototype — and keep the topology spec platform-agnostic enough that the same spec can drive either
+- Target **vSphere** as the primary platform, with Proxmox as the prototyping platform - and keep the topology spec platform-agnostic enough that the same spec can drive either
 - **PXE boot** for at least one node, installed unattended
 - Everything in Git, with CI running `yamllint`, [`ansible-lint`](https://ansible.readthedocs.io/projects/lint/), and a smoke test
 - A `README` that explains the design decisions, not just the run commands

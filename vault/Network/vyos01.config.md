@@ -4,7 +4,7 @@ The running configuration of [[vyos01]], exported on 2026-09-16 with `show confi
 Re-applying these lines in `configure` mode rebuilds the router exactly. The hash on the
 `system login user vyos` line is redacted; the password itself is in `creds.md`, outside this repo.
 Not every line here was a lab decision: the `offload`, `hw-id`, `ntp`, `console`, `syslog`, and
-`config-management` lines are VyOS's own defaults — see [[Build-Sequence]] 1.4.
+`config-management` lines are VyOS's own defaults - see [[Build-Sequence]] 1.4.
 
 ```bash
 set interfaces ethernet eth0 address '192.168.132.3/24'
@@ -29,7 +29,8 @@ set nat source rule 100 translation address 'masquerade'
 set protocols static route 0.0.0.0/0 next-hop 192.168.132.2
 set service dns forwarding allow-from '10.10.10.0/24'
 set service dns forwarding listen-address '10.10.10.3'
-set service dns forwarding name-server 192.168.132.2
+set service dns forwarding name-server 1.0.0.1
+set service dns forwarding name-server 1.1.1.1
 set service ntp allow-client address '127.0.0.0/8'
 set service ntp allow-client address '169.254.0.0/16'
 set service ntp allow-client address '10.0.0.0/8'
@@ -47,7 +48,7 @@ set system console device ttyS0 speed '115200'
 set system domain-name 'rangelab.internal'
 set system host-name 'vyos01'
 set system login user vyos authentication encrypted-password '<redacted>'
-set system name-server '192.168.132.2'
+set system name-server '1.1.1.1'
 set system option reboot-on-upgrade-failure '5'
 set system syslog local facility all level 'info'
 set system syslog local facility local7 level 'debug'

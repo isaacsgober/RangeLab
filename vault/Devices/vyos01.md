@@ -3,14 +3,14 @@
 ## Purpose
 
 The lab router. It is the default gateway for [[VMnet10]], translates lab traffic out to the
-internet, and forwards DNS for the lab. Built first in the 2026-09-16 rebuild — every other node is
+internet, and forwards DNS for the lab. Built first in the 2026-09-16 rebuild - every other node is
 installed with `10.10.10.3` as its gateway. See [[Build-Sequence]] Stage 1.
 
 ---
 
 ## Status
 
-**Running** — built 2026-09-16
+**Running** - built 2026-09-16
 
 ---
 
@@ -28,7 +28,7 @@ VyOS
 | Built on | 2026-02-09 20:41 UTC, build commit `e4c4eddad9b984` |
 | Boot via | installed image |
 
-Installed from `vyos-2026.02-generic-amd64.iso` with `install image` — "boot via: installed image"
+Installed from `vyos-2026.02-generic-amd64.iso` with `install image` - "boot via: installed image"
 is what distinguishes that from running the live ISO.
 
 This is a **stream** release, not LTS. It logs in with a banner calling itself a technology preview
@@ -56,7 +56,7 @@ vyos01.rangelab.internal
 
 ## IP Address
 
-[[10.10.10.3]] (LAN) — also `192.168.132.3/24` on the WAN side
+[[10.10.10.3]] (LAN) - also `192.168.132.3/24` on the WAN side
 
 ---
 
@@ -70,8 +70,8 @@ vyos01.rangelab.internal
 
 | Interface | MAC | Network | Address | Purpose |
 | --------- | --- | ------- | ------- | ------- |
-| `eth0` | `00:0c:29:5c:a9:f6` | [[VMnet8]] | `192.168.132.3/24` | WAN — uplink to Workstation's NAT service |
-| `eth1` | `00:0c:29:5c:a9:00` | [[VMnet10]] | `10.10.10.3/24` | LAN — the lab network |
+| `eth0` | `00:0c:29:5c:a9:f6` | [[VMnet8]] | `192.168.132.3/24` | WAN - uplink to Workstation's NAT service |
+| `eth1` | `00:0c:29:5c:a9:00` | [[VMnet10]] | `10.10.10.3/24` | LAN - the lab network |
 
 Each interface is pinned to its MAC with `hw-id`, so the names cannot swap across reboots. `.3` is
 static and below Workstation's VMnet8 DHCP range (`.128–.254`), so the WAN address cannot move.
@@ -82,7 +82,7 @@ static and below Workstation's VMnet8 DHCP range (`.128–.254`), so the WAN add
 
 | Route | Next hop |
 | ----- | -------- |
-| `0.0.0.0/0` | `192.168.132.2` — Workstation's NAT gateway on VMnet8 |
+| `0.0.0.0/0` | `192.168.132.2` - Workstation's NAT gateway on VMnet8 |
 | `10.10.10.0/24` | Connected, `eth1` |
 | `192.168.132.0/24` | Connected, `eth0` |
 
@@ -91,10 +91,9 @@ static and below Workstation's VMnet8 DHCP range (`.128–.254`), so the WAN add
 ## NAT
 
 Source rule 100, "Lab to internet": traffic from `10.10.10.0/24` leaving `eth0` is translated with
-`masquerade` — rewritten to whatever address `eth0` holds.
+`masquerade` - rewritten to whatever address `eth0` holds.
 
-Lab traffic is therefore translated twice: once by vyos01 onto VMnet8, once by Workstation onto the
-host's LAN. Nothing outside can open a connection inward, which is intentional.
+Lab traffic is translated twice before it leaves the host; see [[VMnet8]].
 
 ---
 
@@ -102,9 +101,9 @@ host's LAN. Nothing outside can open a connection inward, which is intentional.
 
 | Service | Configuration | Notes |
 | ------- | ------------- | ----- |
-| DNS forwarding | `listen-address 10.10.10.3`, `allow-from 10.10.10.0/24`, `name-server 192.168.132.2` | `allow-from` keeps it from being an open resolver; `listen-address` keeps it off the WAN side. Lab nodes use it directly until infra01 exists, then infra01 answers `rangelab.internal` and forwards the rest here. |
+| DNS forwarding | `listen-address 10.10.10.3`, `allow-from 10.10.10.0/24`, `name-server 1.1.1.1` and `1.0.0.1` | A PowerDNS Recursor: it caches and validates DNSSEC. `allow-from` keeps it from being an open resolver; `listen-address` keeps it off the WAN side. Lab nodes use it directly until infra01 exists, then infra01 answers `rangelab.internal` and forwards the rest here. It does **not** forward to Workstation's NAT DNS proxy - that proxy is too slow for the recursor's 1500 ms timeout, see [[Troubleshooting]] (2026-09-17). |
 | SSH | `listen-address 10.10.10.3` | LAN only. |
-| NTP | VyOS defaults: servers `time1`–`time3.vyos.net`, `allow-client` for RFC 1918, loopback, and link-local | Shipped with the image, not configured for this lab. The lab's own time design is still [[chrony]] on infra01 — see [[Rebuild-Plan]] §4.3. |
+| NTP | VyOS defaults: servers `time1`–`time3.vyos.net`, `allow-client` for RFC 1918, loopback, and link-local | Shipped with the image, not configured for this lab. The lab's own time design is still [[chrony]] on infra01 - see [[Rebuild-Plan]] §4.3. |
 
 ---
 
@@ -112,7 +111,7 @@ host's LAN. Nothing outside can open a connection inward, which is intentional.
 
 None. vyos01 forwards and translates, but filters nothing. Its WAN side sits on Workstation's
 private NAT network rather than the internet, so it is not directly exposed. A firewall policy is a
-deferred follow-up — see [[Rebuild-Plan]].
+deferred follow-up - see [[Rebuild-Plan]].
 
 ---
 
@@ -143,17 +142,19 @@ Console: Workstation KVM console
 
 20 GB, thin, single `.vmdk`
 
-Firmware BIOS; guest OS profile Debian 12 64-bit; LSI Logic SCSI controller; two `e1000` adapters.
+Firmware BIOS - the same as every Workstation guest in this lab, because Workstation offers no UEFI
+for these Linux guest profiles here. See [[Build-Sequence]]. Guest OS profile Debian 12 64-bit; LSI
+Logic SCSI controller; two `e1000` adapters.
 
 ---
 
 ## Notes
 
 2026-09-16:
-	`rtc.diffFromUTC = "0"` is set in `vyos01.vmx`. Workstation otherwise gives the guest a hardware clock on the host's *local* time, which Linux reads as UTC — the reason dnsmasqhost used to boot five hours in the past.
-	VyOS edits a candidate configuration: `configure` to enter it, `compare` to see the pending change, `commit` to make it live, and `save` to write `/config/config.boot`. A commit that is not saved is lost at reboot. `system config-management commit-revisions 100` keeps the last 100 committed revisions on the router itself.
+	`rtc.diffFromUTC = "0"` is set in `vyos01.vmx`. Workstation otherwise gives the guest a hardware clock on the host's *local* time, which Linux reads as UTC - the reason dnsmasqhost used to boot five hours in the past.
+	Configuration workflow (candidate config, `compare`, `commit`, `save`) is in [[Build-Sequence]] 1.4. `system config-management commit-revisions 100` keeps the last 100 committed revisions on the router itself.
 	The running configuration is exported to [[vyos01.config]] as `set` commands, with the password hash replaced by a placeholder.
-	Verified at build: both interfaces up, default route present, and `ping` to `192.168.132.2`, `1.1.1.1`, and `vyos.net` all replied — the last one proving DNS forwarding works.
+	Verified at build: both interfaces up, default route present, and `ping` to `192.168.132.2`, `1.1.1.1`, and `vyos.net` all replied. The `vyos.net` ping proves only that *the router* resolves, via `system name-server`; the forwarding service is separate and needs its own check, `dig @10.10.10.3` - see [[Troubleshooting]] (2026-09-17).
 	The Windows host keeps `10.10.10.1` on its VMnet10 adapter with no gateway, so host routing is unchanged by the lab having one.
 
 ---

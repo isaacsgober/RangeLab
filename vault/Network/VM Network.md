@@ -1,5 +1,9 @@
 # VM Network
 
+> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
+> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
+
+
 ## Purpose
 
 Default port group on [[vSwitch0]], the primary vSwitch for [[esxi01]]. Attached VMs are connected to [[VMnet10]] through the vSwitch uplink.

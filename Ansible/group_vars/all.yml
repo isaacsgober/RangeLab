@@ -6,3 +6,12 @@ base_utils:
   - tmux
   - tree
   - vim-enhanced
+
+dns_server_host: "{{ groups['dns_servers'] | first }}"
+ntp_server_host: "{{ groups['ntp_servers'] | first }}"
+
+lab_network: 10.10.10.0/24
+lab_domain: rangelab.internal
+dns_upstream: 10.10.10.3
+dns_extra_records:
+  vyos01.rangelab.internal: 10.10.10.3
