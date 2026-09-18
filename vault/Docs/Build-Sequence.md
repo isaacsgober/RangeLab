@@ -399,6 +399,28 @@ resolving; AAAA returning NODATA.
 `getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
 `nss-myhostname`, not DNS; see [[Troubleshooting]] (2026-09-18).
 
+## 3.4 Adding a node
+
+For a Rocky node installed after this stage, such as managed01 in Stage 6. A node new to the lab
+first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a rebuild from
+`main` already has one.
+
+Publish the node's DNS record, then bootstrap and converge it by name:
+
+```
+ansible-playbook site.yml --limit dns_servers --tags dns
+ssh labadmin@<fqdn> exit
+ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K --limit <fqdn>
+ansible-playbook site.yml
+```
+
+`--limit` restricts which hosts run tasks, not which hosts the inventory holds, so the DNS server
+generates the new node's record even though nothing runs on the new node. Limiting by the
+`dns_servers` group keeps the command independent of which host serves DNS.
+
+Expected: `ansible all -m ping` answers from every node, and a second `site.yml` run reports
+`changed=0`.
+
 ---
 
 # Stage 4 - esxi01, the nested hypervisor
