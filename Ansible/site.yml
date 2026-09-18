@@ -3,6 +3,9 @@
   hosts: all
   become: true
   roles:
-    - common
-    - ntp
-    - dns
+    - role: common
+      tags: common
+    - role: ntp
+      tags: ntp
+    - role: dns
+      tags: dns
