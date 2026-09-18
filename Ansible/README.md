@@ -21,7 +21,8 @@ Ansible/
 
 ## Inventory
 
-Each host is declared once with its `ansible_host`; groups carry membership only. Group names
+Each host is declared once with its address in `lab_address`; groups carry membership only.
+Ansible connects by inventory name, the FQDN (ADR-0008). Group names
 describe the service a member provides, so a node's role is declared in one place and roles derive
 the rest:
 
@@ -53,9 +54,17 @@ A node with no `ansible` account is bootstrapped once, as `labadmin` with passwo
 
 ```bash
 ssh labadmin@<address> exit                # accept the host key first
-ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K
-ansible all -m ping
+ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_address }}' -k -K
 ```
+
+If the node is not yet in DNS, converge it by address once; the `dns` role then publishes its
+record:
+
+```bash
+ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'
+```
+
+The same flag recovers management if DNS fails.
 
 `-e` rather than `-u`: command-line values lose to inventory variables, extra vars win.
 

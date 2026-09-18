@@ -36,10 +36,10 @@ Nodes inside esxi01 are configured as their stages build them.
 | Node | Runs on | Software | Syncs from | Serves | Key settings |
 | ---- | ------- | -------- | ---------- | ------ | ------------ |
 | [[infra01]] | VMware Workstation | chrony | public pool, through [[vyos01]] | `10.10.10.0/24` | `allow 10.10.10.0/24`, `makestep 1.0 -1` |
-| [[ansible01]] | VMware Workstation | chrony | `10.10.10.2` | - | `makestep 1.0 -1` |
-| [[esxi01]] | VMware Workstation | ntpd | `10.10.10.2` | - | runs with `-g`, one startup correction only |
-| [[vcenter01]] | [[esxi01]] | ntpd (VAMI) | `10.10.10.2` | - | - |
-| [[managed01]] | [[esxi01]] | chrony | `10.10.10.2` | - | `makestep 1.0 -1` |
+| [[ansible01]] | VMware Workstation | chrony | `infra01.rangelab.internal` | - | `makestep 1.0 -1` |
+| [[esxi01]] | VMware Workstation | ntpd | `infra01.rangelab.internal` | - | runs with `-g`, one startup correction only |
+| [[vcenter01]] | [[esxi01]] | ntpd (VAMI) | `infra01.rangelab.internal` | - | - |
+| [[managed01]] | [[esxi01]] | chrony | `infra01.rangelab.internal` | - | `makestep 1.0 -1` |
 
 A client is one stratum below its source. Strata move with the upstream the pool selects.
 
@@ -53,8 +53,9 @@ A client is one stratum below its source. Strata move with the upstream the pool
 - **The upstream is real.** The pre-rebuild lab had no reachable time source and invented
   `local stratum 10`, which guaranteed only that nodes agreed with each other. Internet access
   through [[vyos01]] removed the need for that.
-- **Clients point at an address, not a name.** Time does not depend on DNS, so a DNS fault cannot
-  also become a time fault.
+- **Clients point at a name.** infra01 serves both DNS and NTP, so it fails as one unit either way;
+  referring to it by name costs little and reads as intent. See
+  [ADR-0008](Decision%20Records/ADR-0008%20-%20Reference%20hosts%20by%20name.md).
 - **The Windows host is not involved.** It was the upstream between 2026-09-15 and the rebuild;
   its NTP server setting and the VMnet10 firewall rule are no longer used by the lab.
 
@@ -66,7 +67,7 @@ A client is one stratum below its source. Strata move with the upstream the pool
 | ----- | ------- | ------- |
 | Any chrony node | `chronyc sources` | `^*` on the configured source |
 | [[infra01]] | `chronyc clients` | Each lab node listed with a non-zero packet count |
-| [[esxi01]], [[vcenter01]] | `ntpq -p` | `*` on `10.10.10.2` |
+| [[esxi01]], [[vcenter01]] | `ntpq -p` | `*` on infra01 |
 
 ---
 

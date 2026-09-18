@@ -49,7 +49,7 @@ query for a type it does not have returns NOERROR with no answer rather than NXD
 
 Two sources feed the generation:
 
-- **Managed nodes** come from `groups['all']` and each host's `ansible_host`. Adding a node to the
+- **Managed nodes** come from `groups['all']` and each host's `lab_address`. Adding a node to the
   inventory gives it DNS on the next converge.
 - **Unmanaged hosts** come from `dns_extra_records` in `group_vars/all.yml`. [[vyos01]] is there
   now; esxi01, vcenter01, and managed01 join as they are built, until they are managed nodes.
@@ -76,6 +76,10 @@ Clients reach this service because the `dns` role writes `/etc/resolv.conf` and 
 NetworkManager from managing it. See [[Build-Sequence]] Stage 3.
 
 `dnsmasq --test` validates a configuration file without starting the service.
+
+Ansible reaches every node by name through this service (ADR-0008), so a dnsmasq fault also stops
+name-based management. `ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'` connects by
+address for that run and restores it.
 
 On [[infra01]] itself, `getent hosts` for its own name answers from `nss-myhostname` rather than
 from DNS. See [[Troubleshooting]] (2026-09-18).

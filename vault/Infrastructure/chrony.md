@@ -36,7 +36,7 @@ membership of the `ntp_servers` group, so a node's behaviour follows from the in
 | ---- | ----- | ------ |
 | `pool 2.rocky.pool.ntp.org iburst` | Server | Upstream. `iburst` brings the first sync down to seconds |
 | `allow 10.10.10.0/24` | Server | Answer queries from the lab network. The default is to answer none |
-| `server <infra01 address> iburst` | Clients | The lab's time source, by address rather than name, so time does not depend on DNS |
+| `server infra01.rangelab.internal iburst` | Clients | The lab's time source, by name (ADR-0008) |
 | `makestep 1.0 -1` | Both | Step the clock whenever it is off by more than a second. The default steps only in the first three updates, which cannot recover a node that was powered off |
 | `driftfile`, `rtcsync` | Both | Persist the measured drift; write system time back to the hardware clock |
 
@@ -49,6 +49,7 @@ than quietly serving a clock nothing has corrected.
 
 - [[vyos01]] for the route to the public pool
 - [[infra01]] running `chronyd` and reachable on 123/UDP
+- [[dnsmasq]] resolving `infra01.rangelab.internal` for clients
 
 ---
 

@@ -45,8 +45,8 @@ infra01.rangelab.internal
 
 [[10.10.10.2]]
 
-Gateway `10.10.10.3` ([[vyos01]]). DNS is `10.10.10.3` until this node serves its own zone, at
-which point Stage 3's `common` role points every node here.
+Gateway `10.10.10.3` ([[vyos01]]). DNS `10.10.10.2`: this node resolves through its own dnsmasq, as every
+node does.
 
 ---
 

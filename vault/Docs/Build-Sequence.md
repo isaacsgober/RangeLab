@@ -24,6 +24,13 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
 
+When rebuilding over an earlier lab, clear the host's stale SSH host keys for every reused address
+first, or SSH refuses the new machines with "REMOTE HOST IDENTIFICATION HAS CHANGED":
+
+```
+ssh-keygen -R <address>
+```
+
 ---
 
 # Stage 1 - vyos01, the lab router
@@ -383,8 +390,8 @@ Ansible/
 
 ## 3.1 Inventory and variables
 
-Each host is declared once under `all.hosts` with its `ansible_host`, and groups below it carry
-membership only. Groups are named for the service a member provides, so a node's role is declared
+Each host is declared once under `all.hosts` with its address in `lab_address`, and groups below it
+carry membership only. Groups are named for the service a member provides, so a node's role is declared
 in exactly one place.
 
 ```yaml
@@ -394,9 +401,9 @@ all:
     ansible_python_interpreter: /usr/bin/python3
   hosts:
     ansible01.rangelab.internal:
-      ansible_host: 10.10.10.20
+      lab_address: 10.10.10.20
     infra01.rangelab.internal:
-      ansible_host: 10.10.10.2
+      lab_address: 10.10.10.2
   children:
     control:
       hosts:
@@ -409,8 +416,9 @@ all:
         infra01.rangelab.internal:
 ```
 
-`ansible_host` carries the address so nothing depends on DNS that does not exist yet.
-`ansible_python_interpreter` is pinned because ansible01 has `/opt/ansible/bin` first on `PATH`;
+Ansible connects by inventory name, the FQDN, resolved through infra01 (ADR-0008). `lab_address` is
+a plain variable holding the address for the few places that need one; it is deliberately not
+`ansible_host`, which would override the connection target. `ansible_python_interpreter` is pinned because ansible01 has `/opt/ansible/bin` first on `PATH`;
 without the pin, modules there run under the virtual environment's Python, which cannot import the
 system `dnf` bindings.
 
@@ -434,8 +442,8 @@ dns_extra_records:
 and installs the sudoers drop-in (ADR-0002). It runs once per node, as `labadmin` with password
 authentication, because the key it installs does not exist on the targets yet.
 
-Accept each host key first. SSH refuses unknown hosts non-interactively, and Ansible cannot answer
-the prompt:
+No lab name resolves yet, so bootstrap and the first converge connect by address. Accept each host
+key first; SSH refuses unknown hosts non-interactively, and Ansible cannot answer the prompt:
 
 ```
 ssh labadmin@10.10.10.2 exit
@@ -443,19 +451,39 @@ ssh labadmin@10.10.10.20 exit
 ```
 
 ```
-ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K
+ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_address }}' -k -K
 ```
+
+`ansible_host={{ lab_address }}` is templated per host, so each node is reached at its own address
+for this run only.
 
 **Use `-e`, not `-u`.** Command-line values such as `-u` sit at the bottom of Ansible's variable
 precedence and lose to `ansible_user` from the inventory. Extra vars win outright.
 
-Expect `changed=3` per node on the first run. Then, with no flags at all:
+Expect `changed=3` per node on the first run. Then the first converge, still by address, which
+brings up DNS:
+
+```
+ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'
+```
+
+From here on, names resolve. Accept each host key once more, by name, since SSH records keys per
+name as typed:
+
+```
+ssh ansible@infra01.rangelab.internal exit
+ssh ansible@ansible01.rangelab.internal exit
+```
+
+Then, with no flags at all:
 
 ```
 ansible all -m ping
 ```
 
-`pong` from both nodes proves the account, the key, and the inventory together.
+`pong` from both nodes proves the account, the key, name resolution, and the inventory together.
+
+The same `-e 'ansible_host={{ lab_address }}'` recovers Ansible connectivity if DNS ever fails.
 
 ## 3.3 The roles
 
@@ -483,11 +511,11 @@ time server. One template serves both sides and branches on group membership:
 pool 2.rocky.pool.ntp.org iburst
 allow {{ lab_network }}
 {% else %}
-server {{ hostvars[ntp_server_host].ansible_host }} iburst
+server {{ ntp_server_host }} iburst
 {% endif %}
 ```
 
-The client line uses `hostvars[...]` rather than a name, so time does not depend on DNS.
+The client line is `server {{ ntp_server_host }} iburst`, which renders the time server's FQDN.
 
 **dns** has server tasks gated on `dns_servers` membership and client tasks that run everywhere,
 the DNS server included, since it resolves through itself. Client tasks come last: under the
@@ -498,7 +526,7 @@ Server side, `/etc/dnsmasq.conf` is templated whole. Records are generated from 
 
 ```jinja
 {% for host in groups['all'] %}
-host-record={{ host }},{{ hostvars[host].ansible_host }}
+host-record={{ host }},{{ hostvars[host].lab_address }}
 {% endfor %}
 ```
 
