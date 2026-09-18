@@ -475,10 +475,13 @@ In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datas
 
 ## 4.5 Certificate
 
-The installer generates a self-signed certificate before the hostname exists, so it names
-`localhost.localdomain`. It is left in place: vCenter trusts a host by accepted thumbprint when
-adding it, then replaces the certificate with a VMCA-signed one carrying the identifier used for the
-add. Stage 6 adds esxi01 **by FQDN** and checks the replacement.
+The installer's self-signed certificate names `localhost.localdomain`. Leave it: when vCenter adds
+the host in Stage 6, it accepts the certificate by thumbprint and replaces it with a VMCA-signed one
+carrying the name used for the add. Add **by FQDN**; adding by IP puts an IP-only SAN in the
+replacement.
+
+**Verified 2026-09-18:** after the add, `rui.crt` shows `DNS:esxi01.rangelab.internal`, issued by
+the VMCA root. No manual regeneration needed.
 
 ## 4.6 Checks
 

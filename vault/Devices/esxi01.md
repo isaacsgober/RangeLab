@@ -107,7 +107,7 @@ local VMFS datastore only above roughly 142 GB.
 2026-09-18:
 	Firmware is EFI, forced by the ESXi 9 guest profile. `rtc.diffFromUTC = "0"` is set in the `.vmx`.
 	NTP: `ntpd` synced to `infra01.rangelab.internal` (`ntpq -p` shows `*`), set with `esxcli system ntp set --server=infra01.rangelab.internal --enabled=true`. ESXi's `ntpd` runs with `-g`: one large correction at startup, then corrections over 1000 s are refused. See [[chrony]] and [[NTP Hierarchy]].
-	Certificate: still the installer's self-signed `localhost.localdomain` certificate, deliberately. vCenter replaces it with a VMCA-signed one when the host is added; Stage 6 adds it by FQDN and checks the new SAN.
+	Certificate: VMCA-issued on the add to vCenter by FQDN, replacing the installer's self-signed `localhost.localdomain` certificate with no manual regeneration. Subject and SAN `esxi01.rangelab.internal`, valid to 2031-09-17.
 	Evaluation license expires 2026-12-16 (89 days remaining on 2026-09-18).
 
 ---
