@@ -6,3 +6,8 @@ base_utils:
   - tmux
   - tree
   - vim-enhanced
+
+dns_server_host: "{{ groups['dns_servers'] | first }}"
+ntp_server_host: "{{ groups['ntp_servers'] | first }}"
+
+lab_network: 10.10.10.0/24
