@@ -361,3 +361,182 @@ and `ansible-lint`**; `ansible.posix` listed; the clone's latest commit matching
 ansible.posix 2.2.2, Python 3.12.13, clone at `bc756a5`.
 
 Record the installed versions in the device note; they pin what this build was tested with.
+
+---
+
+# Stage 3 - Ansible: bootstrap and the base roles
+
+Stage 3 turns two installed machines into managed nodes, then configures time and DNS from the
+repository. Everything here runs from `~labadmin/RangeLab/Ansible` on ansible01.
+
+Layout produced by this stage:
+
+```
+Ansible/
+├── ansible.cfg
+├── bootstrap.yml
+├── site.yml
+├── inventory/hosts.yml
+├── group_vars/all.yml
+└── roles/{common,ntp,dns}/{tasks,handlers,templates,files}
+```
+
+## 3.1 Inventory and variables
+
+Each host is declared once under `all.hosts` with its `ansible_host`, and groups below it carry
+membership only. Groups are named for the service a member provides, so a node's role is declared
+in exactly one place.
+
+```yaml
+all:
+  vars:
+    ansible_user: ansible
+    ansible_python_interpreter: /usr/bin/python3
+  hosts:
+    ansible01.rangelab.internal:
+      ansible_host: 10.10.10.20
+    infra01.rangelab.internal:
+      ansible_host: 10.10.10.2
+  children:
+    control:
+      hosts:
+        ansible01.rangelab.internal:
+    dns_servers:
+      hosts:
+        infra01.rangelab.internal:
+    ntp_servers:
+      hosts:
+        infra01.rangelab.internal:
+```
+
+`ansible_host` carries the address so nothing depends on DNS that does not exist yet.
+`ansible_python_interpreter` is pinned because ansible01 has `/opt/ansible/bin` first on `PATH`;
+without the pin, modules there run under the virtual environment's Python, which cannot import the
+system `dnf` bindings.
+
+`group_vars/all.yml` derives service addresses from the inventory rather than repeating them:
+
+```yaml
+dns_server_host: "{{ groups['dns_servers'] | first }}"
+ntp_server_host: "{{ groups['ntp_servers'] | first }}"
+lab_network: 10.10.10.0/24
+lab_domain: rangelab.internal
+dns_upstream: 10.10.10.3
+dns_extra_records:
+  vyos01.rangelab.internal: 10.10.10.3
+```
+
+`dns_extra_records` covers hosts Ansible does not manage; managed hosts come from the inventory.
+
+## 3.2 Bootstrap
+
+`bootstrap.yml` creates the `ansible` service account, authorises the control node's public key,
+and installs the sudoers drop-in (ADR-0002). It runs once per node, as `labadmin` with password
+authentication, because the key it installs does not exist on the targets yet.
+
+Accept each host key first. SSH refuses unknown hosts non-interactively, and Ansible cannot answer
+the prompt:
+
+```
+ssh labadmin@10.10.10.2 exit
+ssh labadmin@10.10.10.20 exit
+```
+
+```
+ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K
+```
+
+**Use `-e`, not `-u`.** Command-line values such as `-u` sit at the bottom of Ansible's variable
+precedence and lose to `ansible_user` from the inventory. Extra vars win outright.
+
+Expect `changed=3` per node on the first run. Then, with no flags at all:
+
+```
+ansible all -m ping
+```
+
+`pong` from both nodes proves the account, the key, and the inventory together.
+
+## 3.3 The roles
+
+`site.yml` applies them in order; role order in the list is execution order.
+
+```yaml
+---
+- name: Configure all nodes
+  hosts: all
+  become: true
+  roles:
+    - common
+    - ntp
+    - dns
+```
+
+**common** installs the base utilities and makes the journal persistent. A package-update task is
+tagged `never, update`, so it runs only with `--tags update`.
+
+**ntp** installs chrony, templates `/etc/chrony.conf`, runs `chronyd`, and opens 123/UDP on the
+time server. One template serves both sides and branches on group membership:
+
+```jinja
+{% if 'ntp_servers' in group_names %}
+pool 2.rocky.pool.ntp.org iburst
+allow {{ lab_network }}
+{% else %}
+server {{ hostvars[ntp_server_host].ansible_host }} iburst
+{% endif %}
+```
+
+The client line uses `hostvars[...]` rather than a name, so time does not depend on DNS.
+
+**dns** has server tasks gated on `dns_servers` membership and client tasks that run everywhere,
+the DNS server included, since it resolves through itself. Client tasks come last: under the
+default `linear` strategy every host finishes a task before any host starts the next, so dnsmasq is
+serving before anything is pointed at it.
+
+Server side, `/etc/dnsmasq.conf` is templated whole. Records are generated from the inventory:
+
+```jinja
+{% for host in groups['all'] %}
+host-record={{ host }},{{ hostvars[host].ansible_host }}
+{% endfor %}
+```
+
+`host-record` creates the A and the PTR together and makes the name exist for every query type. The
+pre-rebuild lab used `address=` rules, which answer only A and let other types fall through to
+NXDOMAIN; see [[Troubleshooting]] (2026-09-15).
+
+`no-resolv` is required. Without it dnsmasq takes its upstreams from `/etc/resolv.conf`, which the
+client tasks point at dnsmasq itself. `bind-dynamic` rather than `bind-interfaces`: the first binds
+interfaces as they appear, the second binds at startup and fails if dnsmasq starts before the
+interface is up, which is a cold-boot race.
+
+Client side, two files: a NetworkManager drop-in at `/etc/NetworkManager/conf.d/90-dns-none.conf`
+containing `dns=none`, and `/etc/resolv.conf`. NetworkManager owns that file by default and
+overwrites anything written there, so it has to be told to stop before the resolver is set.
+
+## 3.4 Checks
+
+```
+ansible-playbook site.yml
+ansible all -m command -a 'chronyc sources'
+ansible ntp_servers -b -m command -a 'chronyc clients'
+ansible all -m command -a 'getent hosts vyos01.rangelab.internal'
+ansible all -m command -a 'dig +short rockylinux.org'
+ansible all -m command -a 'dig infra01.rangelab.internal AAAA'
+ansible dns_servers -b -m command -a 'NetworkManager --print-config'
+```
+
+Expected: a second run reports `changed=0` with no handlers firing; every node `^*` on its source,
+with clients one stratum below the server; the server listing its clients; lab and external names
+resolving; the AAAA query returning `NOERROR` with an empty answer section rather than `NXDOMAIN`;
+and `dns=none` present in the merged NetworkManager configuration.
+
+**Verified 2026-09-18:** both nodes converged to `changed=0`; ansible01 synchronised to `10.10.10.2`
+at stratum 3 and listed as a client on infra01; lab, extra-record, and external names all resolving;
+AAAA returning NODATA.
+
+On the DNS server, `getent hosts <its own FQDN>` returns a link-local IPv6 address rather than its
+lab address. That is `nss-myhostname` answering for the machine's own name after DNS returns NODATA
+for the AAAA query, not a DNS fault; `getent ahostsv4` returns the correct address. See
+[[Troubleshooting]] (2026-09-18).

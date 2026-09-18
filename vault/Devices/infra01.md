@@ -87,8 +87,11 @@ SSH: `labadmin@10.10.10.2`
 ## Services
 
 - [[dnsmasq]] - authoritative for `rangelab.internal` and `10.10.10.in-addr.arpa`, forwarding
-  everything else to [[vyos01]] *(Stage 3)*
-- [[chrony]] - NTP server for `10.10.10.0/24` *(Stage 3)*
+  everything else to [[vyos01]]
+- [[chrony]] - NTP server for `10.10.10.0/24`, syncing from the public pool through [[vyos01]]
+
+Both are configured by Ansible roles, not by hand. Records and time sources derive from the
+inventory; see [[Build-Sequence]] Stage 3.
 
 ---
 
@@ -99,6 +102,8 @@ SSH: `labadmin@10.10.10.2`
 	`rtc.diffFromUTC = "0"` in the `.vmx`, and the installer's time zone set to UTC.
 	The DVD is installation media only. This node uses the normal Rocky repositories over the internet through [[vyos01]], which is what ADR-0003's local ISO repository existed to work around.
 	Firmware is BIOS: Workstation offers no UEFI for this guest profile. Rocky's automatic partitioning therefore creates a `biosboot` partition rather than an EFI system partition, so there is no `/boot/efi`.
+
+	The DNS servers entered at install remain in this node's NetworkManager connection profile, but are inert: the `dns` role sets `dns=none`, so NetworkManager no longer writes `/etc/resolv.conf`. Removing that drop-in would let the installer's values return.
 
 ---
 

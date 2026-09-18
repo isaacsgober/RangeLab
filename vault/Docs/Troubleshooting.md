@@ -737,3 +737,43 @@ Stage 1's checks proved the *router* could resolve and stopped there. `system na
 `service dns forwarding` are independent settings, so that proved nothing about clients. A
 `dig @10.10.10.3` from the router would have caught this before infra01 existed; it is now a
 required check in [[Build-Sequence]] 1.5.
+
+---
+
+### 2026-09-18 - The DNS server resolves its own name to a link-local address
+
+**System(s) affected:**
+[[infra01]]
+
+**Symptom:**
+After the `dns` role converged, `getent hosts infra01.rangelab.internal` returned
+`fe80::20c:29ff:fedd:bd21` when run on infra01, while the same command on [[ansible01]] returned
+`10.10.10.2`.
+
+**Diagnosis steps:**
+`dig infra01.rangelab.internal` against `10.10.10.2` returned the correct A record from both nodes,
+so dnsmasq was answering correctly.
+`grep ^hosts: /etc/nsswitch.conf` showed `files dns myhostname`.
+`getent ahostsv4 infra01.rangelab.internal` on infra01 returned `10.10.10.2`.
+
+**Root cause:**
+Name resolution order, not DNS. `getent hosts` attempts IPv6 first. dnsmasq answers the AAAA query
+with NODATA, which is correct - `host-record` makes the name exist for every type while defining
+only an address - and NSS treats an empty result as "not found here" and continues to the next
+source. `nss-myhostname` answers for the machine's own hostname from its interface addresses,
+returning the link-local address. The first successful source wins, so that is what prints.
+
+On every other node `nss-myhostname` declines, because the name is not its own, and the IPv4 answer
+from DNS is returned.
+
+**Fix:**
+None required. The records are correct, and no service resolves infra01 by name from infra01.
+An `/etc/hosts` entry would not change this result: the AAAA path would still fall through to
+`nss-myhostname`.
+
+**Verification:**
+`getent ahostsv4 infra01.rangelab.internal` returns `10.10.10.2` on the DNS server.
+
+**Lesson:**
+`getent hosts` is a test of the whole NSS stack, not of DNS. Use `dig` to test a name server and
+`getent ahostsv4` when the address family matters.
