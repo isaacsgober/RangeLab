@@ -1,18 +1,16 @@
 # esxi01
 
-> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
-> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
-
-
 ## Purpose
 
-Nested ESXi lab host
+Nested ESXi host. Runs [[vcenter01]] and [[managed01]], the nodes the lab exists to manage. Lab
+services (routing, DNS, time, the Ansible control node) stay outside it so the hypervisor can be
+rebuilt or broken without taking them down; see ADR-0006.
 
 ---
 
 ## Status
 
-**Running**
+**Running** - installed 2026-09-18
 
 ---
 
@@ -22,7 +20,7 @@ VMware ESXi
 
 ### Version
 
-9.1.0.0200.25557999 (Release Build)
+9.1.0.0200, build 25557999 (`VMware-VMvisor-Installer-9.1.0.0200.25557999.x86_64.iso`)
 
 ---
 
@@ -32,11 +30,11 @@ esxi01
 
 ## Domain
 
-rangelab.local
+rangelab.internal
 
 ## FQDN
 
-esxi01.rangelab.local
+esxi01.rangelab.internal
 
 ---
 
@@ -52,17 +50,18 @@ esxi01.rangelab.local
 
 IPv4: [[10.10.10.10]]
 Mask: 255.255.255.0
-Gateway: [[10.10.10.1]] (To be updated.)
-DNS: [[10.10.10.2]]
+Gateway: [[10.10.10.3]] ([[vyos01]])
+DNS: [[10.10.10.2]] ([[infra01]]); search `rangelab.internal`
+
+The DNS record comes from `dns_extra_records` in the Ansible `group_vars`, since esxi01 is not an
+Ansible-managed node.
 
 ---
 
 ## Management
 
-Web Interface:
-https://10.10.10.10
-
-vCenter: managed by [[vcenter01]] (added 2026-09-15)
+Host Client: `https://esxi01.rangelab.internal`
+SSH: `root@esxi01.rangelab.internal` (enabled in the DCUI)
 
 ---
 
@@ -70,59 +69,54 @@ vCenter: managed by [[vcenter01]] (added 2026-09-15)
 
 ### CPU
 
-12 vCPUs
+6 vCPU (1 socket, 6 cores); hardware virtualization exposed to the guest (`vhv.enable`)
 
 ### Memory
 
-32 GB
+64 GB
 
 ---
 
 ## Storage
 
-Disk 1
-- 142 GB
-- ESXi system
-- [[datastore01-01]]
+| Disk | Size | Controller | Use |
+| ---- | ---- | ---------- | --- |
+| 1 | 128 GB, thin | PVSCSI | ESXi system; no datastore |
+| 2 | 400 GB, thin | PVSCSI | [[datastore01-01]] |
 
-Disk 2
-- 224 GB
-- [[datastore01-02]]
+The boot disk produces no datastore: ESXi 9 claims about 138 GB for system media and creates a
+local VMFS datastore only above roughly 142 GB.
 
 ---
 
 ## Datastores
 
-- [[datastore01-01]] (13.75 GB)
-- [[datastore01-02]] (224 GB)
+- [[datastore01-01]] - VMFS 6, on disk 2
 
 ---
 
 ## Hosted Virtual Machines
 
-- [[vcenter01]]
-- [[ansible01]]
-- [[managed01]]
+- [[vcenter01]] *(Stage 5)*
+- [[managed01]] *(Stage 6)*
 
 ---
 
 ## Notes
 
-2026-09-15:
-	Resized from 8 to 12 vCPUs in VMware Workstation.
-	Added to vCenter by FQDN once the add-host failure was resolved - see [[Troubleshooting]] (2026-09-15).
-	Autostart enabled. On boot it starts [[ansible01]], then [[managed01]], then [[vcenter01]]. On host shutdown it shuts them down in reverse order (120 s default delays; vcenter01 gets 600 s). Shut the host down from the Host Client or with Workstation's Shut Down Guest, never Power Off.
-	NTP: ntpd syncs from [[ansible01]]. ESXi's ntpd (`-g`) accepts one large correction, at startup; once running it refuses corrections over 1000 s. See [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
-	The DCUI shows `https://esxi01/` rather than the FQDN. That's expected: it prints the configured host name, which can't include the domain. See [[Troubleshooting]] (2026-09-15).
+2026-09-18:
+	Firmware is EFI, forced by the ESXi 9 guest profile. `rtc.diffFromUTC = "0"` is set in the `.vmx`.
+	NTP: `ntpd` synced to `infra01.rangelab.internal` (`ntpq -p` shows `*`), set with `esxcli system ntp set --server=infra01.rangelab.internal --enabled=true`. ESXi's `ntpd` runs with `-g`: one large correction at startup, then corrections over 1000 s are refused. See [[chrony]] and [[NTP Hierarchy]].
+	Certificate: still the installer's self-signed `localhost.localdomain` certificate, deliberately. vCenter replaces it with a VMCA-signed one when the host is added; Stage 6 adds it by FQDN and checks the new SAN.
+	Evaluation license expires 2026-12-16 (89 days remaining on 2026-09-18).
 
 ---
 
 ## Related
 
-- [[Precision7730]]
 - [[vcenter01]]
-- [[ansible01]]
 - [[managed01]]
-- [[VMnet10]]
 - [[datastore01-01]]
-- [[datastore01-02]]
+- [[VMnet10]]
+- [[infra01]]
+- [[Build-Sequence]]

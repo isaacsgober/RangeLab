@@ -568,3 +568,122 @@ On the DNS server, `getent hosts <its own FQDN>` returns a link-local IPv6 addre
 lab address. That is `nss-myhostname` answering for the machine's own name after DNS returns NODATA
 for the AAAA query, not a DNS fault; `getent ahostsv4` returns the correct address. See
 [[Troubleshooting]] (2026-09-18).
+
+---
+
+# Stage 4 - esxi01, the nested hypervisor
+
+esxi01 is a VMware ESXi 9.1 host running inside Workstation. It hosts vcenter01 and managed01 and
+nothing else; the services the lab depends on stay outside it (ADR-0006). ESXi is configured by
+hand in the DCUI and over SSH, not by Ansible.
+
+## 4.1 Create the VM
+
+**File → New Virtual Machine → Custom**.
+
+| Setting | Value | Why |
+| ------- | ----- | --- |
+| Guest OS | VMware ESX → VMware ESXi 9 | The profile forces EFI; no firmware choice is offered |
+| Name | `esxi01` | [[Naming Convention]] |
+| Processors | 1 socket, 6 cores | Room for vcenter01 (`small`, 4 vCPU) and managed01 |
+| Memory | 64 GB | vcenter01 `small` needs 21 GB |
+| Disk 1 | 128 GB, single file, PVSCSI | Boot device |
+| Disk 2 | 400 GB, single file, same controller | Datastore; add in VM Settings after the wizard, which creates only one disk |
+| Network adapter | Custom → **VMnet10**, `vmxnet3` | Management network |
+| CD/DVD | `VMware-VMvisor-Installer-9.1.0.0200.25557999.x86_64.iso` | Install media |
+
+Processors → **Virtualize Intel VT-x/EPT or AMD-V/RVI** must be checked (`vhv.enable = "TRUE"`).
+The ESXi profile checks it by default; without it nothing can run inside esxi01. Then, powered off,
+add to `esxi01.vmx`:
+
+```
+rtc.diffFromUTC = "0"
+```
+
+## 4.2 Install
+
+Boot from the ISO, install to the 128 GB disk, set the root password (recorded in `creds.md`), and
+reboot. Clear **Connect at power on** for the CD/DVD afterwards.
+
+The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
+and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
+becomes the datastore in 4.5.
+
+## 4.3 Publish the DNS record first
+
+esxi01 is not an Ansible-managed node, so its record comes from `dns_extra_records` in
+`group_vars/all.yml`:
+
+```yaml
+dns_extra_records:
+  vyos01.rangelab.internal: 10.10.10.3
+  esxi01.rangelab.internal: 10.10.10.10
+```
+
+Converge from ansible01 so infra01 serves it before the DCUI test in 4.4:
+
+```
+ansible-playbook site.yml
+```
+
+Only the dnsmasq configuration and its restart handler change.
+
+## 4.4 Management network (DCUI)
+
+**Configure Management Network:**
+
+| Setting | Value |
+| ------- | ----- |
+| IPv4 | Static, `10.10.10.10`, `255.255.255.0`, gateway `10.10.10.3` |
+| DNS servers | `10.10.10.2` |
+| Hostname | `esxi01.rangelab.internal` |
+| Custom DNS suffixes | `rangelab.internal` |
+
+The DNS server stays an address; everything else refers to hosts by name (ADR-0008). Apply and
+restart the management network when prompted.
+
+**Troubleshooting Options → Enable SSH.** NTP in 4.5 is set over SSH.
+
+**Test Management Network**, adding `1.1.1.1` as an extra address to ping. It pings the gateway,
+the DNS server, and the extra address, and resolves the host's own name.
+
+## 4.5 NTP and storage
+
+Over SSH as root:
+
+```
+esxcli system ntp set --server=infra01.rangelab.internal --enabled=true
+esxcli system ntp get
+```
+
+`--enabled=true` starts `ntpd` and sets it to start with the host. ESXi 9's Host Client no longer
+has the Manage → Services page earlier releases used for the startup policy, so `esxcli` is the
+dependable path.
+
+In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datastore**, VMFS 6, on the
+400 GB disk, named `datastore01-01` ([[Naming Convention]]: first datastore on host 01).
+
+## 4.6 Certificate
+
+The installer generates a self-signed certificate before the hostname exists, so it names
+`localhost.localdomain`. It is left in place: vCenter trusts a host by accepted thumbprint when
+adding it, then replaces the certificate with a VMCA-signed one carrying the identifier used for the
+add. Stage 6 adds esxi01 **by FQDN** and checks the replacement.
+
+## 4.7 Checks
+
+```
+esxcli network ip interface ipv4 get
+esxcli network ip dns server list
+esxcli system ntp get
+ntpq -p
+esxcli storage filesystem list
+```
+
+Expected: `vmk0` at `10.10.10.10/24`; DNS server `10.10.10.2`; NTP enabled with
+`infra01.rangelab.internal`; `ntpq -p` showing `*` against infra01 after a few minutes;
+`datastore01-01` mounted, about 400 GB, VMFS 6, and no datastore on the boot disk.
+
+**Verified 2026-09-18:** DCUI Test Management Network passed all four checks (gateway, DNS server,
+`1.1.1.1`, own-name resolution); `ntpq -p` showing `*` on infra01; `datastore01-01` created on the
+400 GB disk. Evaluation license expires 2026-12-16.

@@ -27,7 +27,7 @@ passed from dnsmasqhost to [[infra01]] in Stage 2.*
 | [[infra01]]                   | [[10.10.10.2]]  | Built 2026-09-17       |
 | [[vyos01]]                    | [[10.10.10.3]]  | Built 2026-09-16       |
 |                               |                 |                        |
-| [[esxi01]]                    | [[10.10.10.10]] | Held - Stage 4         |
+| [[esxi01]]                    | [[10.10.10.10]] | Built 2026-09-18       |
 | [[vcenter01]]                 | [[10.10.10.15]] | Held - Stage 5         |
 | [[ansible01]]                 | [[10.10.10.20]] | Built 2026-09-17       |
 | [[managed01]]                 | [[10.10.10.21]] | Held - Stage 6         |

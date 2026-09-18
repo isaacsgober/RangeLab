@@ -1,55 +1,52 @@
 # datastore01-01
 
-> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
-> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
-
-
 ## Purpose
-Default ESXi system datastore created during installation.
 
-This datastore primarily stores ESXi system files and should not be used for Range Lab virtual machines unless necessary.
+Primary datastore on [[esxi01]]. Holds every VM the host runs.
 
 ---
+
 ## Type
+
 VMFS 6
+
 ## Capacity
-13.75 GB
+
+400 GB (thin-provisioned virtual disk)
+
 ## Free Space
-12.34 GB  (2026-08-03)
+
+Record after Stage 5.
+
 ___
+
 ## Located On
+
 [[esxi01]]
+
 ## Physical Disk
 
-- VMware Virtual Disk
-- 142 GB
+- esxi01 disk 2, PVSCSI
+- 400 GB
 
 ---
 
 ## Intended Use
 
-- ESXi system files
-- Boot-related data
-- Small configuration files
-
-**Do not use for regular virtual machines.**
+- [[vcenter01]]
+- [[managed01]]
 
 ---
 
 ## Notes
 
-During the initial ESXi 9 installation, the installer allocated most of the 142 GB virtual disk to the **ESX-OSData** partition, leaving only a small VMFS datastore (~14 GB).
-
-Because there was no unallocated disk space remaining, this datastore could not be expanded.
-
-To provide sufficient storage for Range Lab virtual machines, a second virtual disk was added to [[esxi01]], and [[datastore01-02]] was created.
-
-Renamed from `datastore1` on 2026-09-07 to match the `datastore<HH>-<NN>` form in [[Naming Convention]].
+2026-09-18:
+	Created in the Host Client after install. It is the host's only datastore: the 128 GB boot disk is below the size at which ESXi 9 creates a local datastore. The pre-rebuild lab's `datastore01-01` was a 13.75 GB remainder on a 142 GB boot disk, unused; this name now belongs to the real datastore under the [[Naming Convention]] (first datastore on host 01).
 
 ---
 
 ## Related
 
 - [[esxi01]]
-- [[datastore01-02]]
 - [[Naming Convention]]
+- [[Build-Sequence]]

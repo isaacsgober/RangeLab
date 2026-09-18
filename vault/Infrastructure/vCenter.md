@@ -35,7 +35,7 @@ To provide centralized management of ESXi hosts and virtual infrastructure; it i
 
 - [[esxi01]] 
 - [[VMnet10]] 
-- [[datastore01-02]] 
+- `datastore01-02` (retired) 
 - [[dnsmasq]]
 - NTP - [[vcenter01]] syncs from [[chrony]] on [[ansible01]] (VAMI timesync mode: NTP). See [ADR-0004](../Architecture/Decision%20Records/ADR-0004%20-%20Lab%20time%20source.md).
 
@@ -53,5 +53,5 @@ The VMware vCenter Server Appliance (VCSA) is a preconfigured virtual appliance 
 - [[ESXi]] 
 - [[vSphere]] 
 - [[VMnet10]] 
-- [[datastore01-02]]
+- `datastore01-02` (retired)
 - [[chrony]]

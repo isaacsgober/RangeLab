@@ -74,7 +74,7 @@ VAMI: https://vcenter01.rangelab.local:5480
 
 ### Storage
 #### Datastore
-[[datastore01-02]]
+`datastore01-02` (retired)
 
 ---
 
@@ -104,5 +104,5 @@ VMware [[vCenter]]
 
 - [[esxi01]]
 - [[vCenter]]
-- [[datastore01-02]]
+- `datastore01-02` (retired)
 - [[VMnet10]]
