@@ -1,0 +1,21 @@
+# Managed by Ansible - local edits will be overwritten
+
+listen-address={{ hostvars[dns_server_host].ansible_host }}, 127.0.0.1
+bind-interfaces
+
+local=/{{ lab_domain }}/
+local=/10.10.10.in-addr.arpa/
+
+no-resolv
+server={{ dns_upstream }}
+
+domain-needed
+bogus-priv
+no-hosts
+
+{% for host in groups['all'] %}
+host-record={{ host }},{{ hostvars[host].ansible_host }}
+{% endfor %}
+{% for name, address in dns_extra_records.items() %}
+host-record={{ name }},{{ address }}
+{% endfor %}
