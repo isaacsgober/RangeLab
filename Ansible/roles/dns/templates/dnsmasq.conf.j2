@@ -1,7 +1,7 @@
 # Managed by Ansible - local edits will be overwritten
 
 listen-address={{ hostvars[dns_server_host].ansible_host }}, 127.0.0.1
-bind-interfaces
+bind-dynamic
 
 local=/{{ lab_domain }}/
 local=/10.10.10.in-addr.arpa/
