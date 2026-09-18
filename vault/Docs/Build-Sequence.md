@@ -10,6 +10,8 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 - Commands are shown exactly as typed. Output shown is the real output, trimmed.
 - Every stage ends with checks. No stage begins until the previous stage's checks pass.
 - Values (addresses, names, sizes) come from [[IP Index]] and [[Naming Convention]].
+- Written for a rebuild from `main`: every file referenced already exists in the repository with
+  the lab's values.
 
 ## Prerequisites
 
@@ -199,12 +201,9 @@ Expected: both interfaces up with the addresses above; a default route via `192.
 three pings succeed; one NAT rule listed; and the `dig` returns `status: NOERROR` in tens of
 milliseconds.
 
-The `dig` is not optional: the pings only prove the router resolves for itself, and the forwarding
-service is what clients use.
+The `dig` tests the forwarder clients use; the pings only prove the router resolves for itself.
 
-**Result, 2026-09-16:** all three pings replied, including `vyos.net`, which also proves the
-adapter order was right, since the replies came back through `eth0`. **2026-09-17:**
-`dig @10.10.10.3` returned NOERROR in 32 ms after the forwarder was pointed at public resolvers.
+**Verified 2026-09-17:** all checks pass; `dig @10.10.10.3` returns NOERROR in 32 ms.
 
 From the Windows host, confirm management access:
 
@@ -212,20 +211,14 @@ From the Windows host, confirm management access:
 ssh vyos@10.10.10.3
 ```
 
-## 1.6 Record it
+## 1.6 Compare with the repository
 
 ```
 show configuration commands
 ```
 
-Save that output to [[vyos01.config]] (`vault/Network/vyos01.config.md`), with the hash on the
-`set system login user vyos authentication encrypted-password` line replaced by a placeholder  - 
-keeping the line shows the account exists without publishing its hash.
-
-Then write the device note, [[vyos01]], from the same output.
-
-**Not configured yet:** vyos01 has no firewall policy. Its WAN side sits on Workstation's private
-NAT network, so it isn't exposed to the internet directly. Tracked as a follow-up.
+The output should match [[vyos01.config]], apart from the `hw-id` MAC addresses and the password
+hash.
 
 ---
 
@@ -278,9 +271,7 @@ Identical for both machines except the highlighted rows.
 
 Begin installation, then reboot and disconnect the ISO.
 
-**Why DNS points at the router here:** infra01 is not serving DNS yet; it is the machine being
-installed. `10.10.10.3` forwards to the internet so `dnf` works immediately. Stage 3 switches both
-nodes to infra01 once dnsmasq is running.
+DNS points at vyos01 until Stage 3 moves every node to infra01.
 
 ## 2.3 Checks after first boot
 
@@ -300,7 +291,7 @@ TZ: no"; SELinux `Enforcing`; the gateway replies; and `dnf` reaches the Rocky m
 
 ## 2.4 Prepare ansible01 as the control node
 
-Install git, then Ansible and the linters into one virtual environment:
+As `labadmin`:
 
 ```
 sudo dnf -y install git
@@ -308,266 +299,104 @@ sudo python3 -m venv /opt/ansible
 sudo /opt/ansible/bin/pip install --upgrade pip
 sudo /opt/ansible/bin/pip install ansible-core ansible-lint yamllint
 echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
-```
-
-Rocky ships `ansible-core` 2.16; pip installs the current release. Putting ansible-core and
-ansible-lint in the same environment keeps the linter and the runtime on one version; installed
-separately, the linter checks playbooks against a core the node does not run.
-
-Ansible here is pip-managed, so `dnf update` will not touch it. Refresh it with
-`sudo /opt/ansible/bin/pip install -U ansible-core ansible-lint`.
-
-`PATH` from `/etc/profile.d` reaches login and interactive shells, but not cron, systemd units, or
-`ssh host '<command>'`. Use the full `/opt/ansible/bin/` path in those.
-
-**Playbooks run as `labadmin`, not as the `ansible` account.** `ansible` is the account Ansible
-logs in to on managed nodes (ADR-0002); the account invoking `ansible-playbook` does not have to
-carry that name. Running as labadmin keeps the working copy, the SSH key, and the collections in
-one account that owns its own home, which removes every `sudo -u` and permission workaround from
-routine use.
-
-Generate the key Ansible presents to managed nodes:
-
-```
 ssh-keygen -t ed25519 -N '' -C 'labadmin@ansible01' -f ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub
-```
-
-No passphrase, so playbooks run unattended; the private key stays on this host and out of the
-repository. Stage 3's bootstrap play installs the public key on every node.
-
-Clone the repository (public, so no credentials) and add the collection the playbooks need:
-
-```
-git clone -b <working-branch> https://github.com/isaacsgober/RangeLab.git ~/RangeLab
+git clone https://github.com/isaacsgober/RangeLab.git ~/RangeLab
 ansible-galaxy collection install ansible.posix
 ```
 
-Collections install per account, under `~/.ansible/collections`, so this runs as the account that
-runs playbooks. Name the branch explicitly; a plain clone lands on `main`.
+Log out and back in so the `PATH` change applies.
 
-The `ansible` service account is **not** created here. `bootstrap.yml` creates it on every node
-including this one, so there is one mechanism rather than a hand-built exception.
+- Ansible comes from pip rather than Rocky's 2.16 package, in one environment with ansible-lint so
+  both use the same core. `dnf update` does not update it.
+- Playbooks run as `labadmin`. `ansible` is the account Ansible logs in to on managed nodes, and
+  Stage 3 creates it on every node, this one included (ADR-0002).
+- The key has no passphrase so playbooks run unattended; it never leaves this host.
 
 ## 2.5 Checks
-
-As `labadmin`:
 
 ```
 which ansible-playbook
 ansible --version | head -1
 ansible-lint --version
 ansible-galaxy collection list | grep posix
-git -C ~/RangeLab log --oneline -1
 ```
 
-Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from both `ansible`
-and `ansible-lint`**; `ansible.posix` listed; the clone's latest commit matching GitHub.
+Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from `ansible` and
+`ansible-lint`**; `ansible.posix` listed.
 
-**Verified 2026-09-17:** ansible-core 2.21.4 (pip), ansible-lint 26.8.0 on the same core,
-ansible.posix 2.2.2, Python 3.12.13, clone at `bc756a5`.
-
-Record the installed versions in the device note; they pin what this build was tested with.
+**Verified 2026-09-17:** ansible-core 2.21.4, ansible-lint 26.8.0 on the same core,
+ansible.posix 2.2.2.
 
 ---
 
-# Stage 3 - Ansible: bootstrap and the base roles
+# Stage 3 - Ansible: bootstrap and converge
 
-Stage 3 turns two installed machines into managed nodes, then configures time and DNS from the
-repository. Everything here runs from `~labadmin/RangeLab/Ansible` on ansible01.
+Turns infra01 and ansible01 into managed nodes and configures time and DNS. Everything runs from
+`~/RangeLab/Ansible` on ansible01, as `labadmin`. The inventory, variables, and roles are already in
+the repository; their layout is in `Ansible/README.md`.
 
-Layout produced by this stage:
+The inventory names every node by FQDN and keeps its address in `lab_address` (ADR-0008).
+`dns_extra_records` lists the nodes Ansible does not manage, so their records exist from the first
+converge, before those nodes are built.
 
-```
-Ansible/
-├── ansible.cfg
-├── bootstrap.yml
-├── site.yml
-├── inventory/hosts.yml
-├── group_vars/all.yml
-└── roles/{common,ntp,dns}/{tasks,handlers,templates,files}
-```
+## 3.1 Bootstrap
 
-## 3.1 Inventory and variables
-
-Each host is declared once under `all.hosts` with its address in `lab_address`, and groups below it
-carry membership only. Groups are named for the service a member provides, so a node's role is declared
-in exactly one place.
-
-```yaml
-all:
-  vars:
-    ansible_user: ansible
-    ansible_python_interpreter: /usr/bin/python3
-  hosts:
-    ansible01.rangelab.internal:
-      lab_address: 10.10.10.20
-    infra01.rangelab.internal:
-      lab_address: 10.10.10.2
-  children:
-    control:
-      hosts:
-        ansible01.rangelab.internal:
-    dns_servers:
-      hosts:
-        infra01.rangelab.internal:
-    ntp_servers:
-      hosts:
-        infra01.rangelab.internal:
-```
-
-Ansible connects by inventory name, the FQDN, resolved through infra01 (ADR-0008). `lab_address` is
-a plain variable holding the address for the few places that need one; it is deliberately not
-`ansible_host`, which would override the connection target. `ansible_python_interpreter` is pinned because ansible01 has `/opt/ansible/bin` first on `PATH`;
-without the pin, modules there run under the virtual environment's Python, which cannot import the
-system `dnf` bindings.
-
-`group_vars/all.yml` derives service addresses from the inventory rather than repeating them:
-
-```yaml
-dns_server_host: "{{ groups['dns_servers'] | first }}"
-ntp_server_host: "{{ groups['ntp_servers'] | first }}"
-lab_network: 10.10.10.0/24
-lab_domain: rangelab.internal
-dns_upstream: 10.10.10.3
-dns_extra_records:
-  vyos01.rangelab.internal: 10.10.10.3
-```
-
-`dns_extra_records` covers hosts Ansible does not manage; managed hosts come from the inventory.
-
-## 3.2 Bootstrap
-
-`bootstrap.yml` creates the `ansible` service account, authorises the control node's public key,
-and installs the sudoers drop-in (ADR-0002). It runs once per node, as `labadmin` with password
-authentication, because the key it installs does not exist on the targets yet.
-
-No lab name resolves yet, so bootstrap and the first converge connect by address. Accept each host
-key first; SSH refuses unknown hosts non-interactively, and Ansible cannot answer the prompt:
+No lab name resolves yet, so the first two runs connect by address. Accept each host key first;
+Ansible cannot answer SSH's prompt:
 
 ```
 ssh labadmin@10.10.10.2 exit
 ssh labadmin@10.10.10.20 exit
-```
-
-```
 ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_address }}' -k -K
 ```
 
-`ansible_host={{ lab_address }}` is templated per host, so each node is reached at its own address
-for this run only.
+Creates the `ansible` service account, authorises ansible01's key, and installs the sudoers
+drop-in (ADR-0002). Use `-e`, not `-u`: command-line options lose to inventory variables, extra
+vars win. Expect `changed=3` per node.
 
-**Use `-e`, not `-u`.** Command-line values such as `-u` sit at the bottom of Ansible's variable
-precedence and lose to `ansible_user` from the inventory. Extra vars win outright.
-
-Expect `changed=3` per node on the first run. Then the first converge, still by address, which
-brings up DNS:
+## 3.2 First converge
 
 ```
 ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'
 ```
 
-From here on, names resolve. Accept each host key once more, by name, since SSH records keys per
-name as typed:
+| Role | Result |
+| ---- | ------ |
+| `common` | Base utilities, persistent journal; `--tags update` runs a package update |
+| `ntp` | chrony: infra01 syncs from the public pool and serves the lab; every other node syncs from infra01 |
+| `dns` | dnsmasq on infra01 with records generated from the inventory; every node resolves through it |
+
+Names resolve from here on. Accept each host key again by name, since SSH records keys per name:
 
 ```
 ssh ansible@infra01.rangelab.internal exit
 ssh ansible@ansible01.rangelab.internal exit
 ```
 
-Then, with no flags at all:
+Later runs need no flags. If DNS fails, `-e 'ansible_host={{ lab_address }}'` restores
+connectivity for a run.
+
+## 3.3 Checks
 
 ```
 ansible all -m ping
-```
-
-`pong` from both nodes proves the account, the key, name resolution, and the inventory together.
-
-The same `-e 'ansible_host={{ lab_address }}'` recovers Ansible connectivity if DNS ever fails.
-
-## 3.3 The roles
-
-`site.yml` applies them in order; role order in the list is execution order.
-
-```yaml
----
-- name: Configure all nodes
-  hosts: all
-  become: true
-  roles:
-    - common
-    - ntp
-    - dns
-```
-
-**common** installs the base utilities and makes the journal persistent. A package-update task is
-tagged `never, update`, so it runs only with `--tags update`.
-
-**ntp** installs chrony, templates `/etc/chrony.conf`, runs `chronyd`, and opens 123/UDP on the
-time server. One template serves both sides and branches on group membership:
-
-```jinja
-{% if 'ntp_servers' in group_names %}
-pool 2.rocky.pool.ntp.org iburst
-allow {{ lab_network }}
-{% else %}
-server {{ ntp_server_host }} iburst
-{% endif %}
-```
-
-The client line is `server {{ ntp_server_host }} iburst`, which renders the time server's FQDN.
-
-**dns** has server tasks gated on `dns_servers` membership and client tasks that run everywhere,
-the DNS server included, since it resolves through itself. Client tasks come last: under the
-default `linear` strategy every host finishes a task before any host starts the next, so dnsmasq is
-serving before anything is pointed at it.
-
-Server side, `/etc/dnsmasq.conf` is templated whole. Records are generated from the inventory:
-
-```jinja
-{% for host in groups['all'] %}
-host-record={{ host }},{{ hostvars[host].lab_address }}
-{% endfor %}
-```
-
-`host-record` creates the A and the PTR together and makes the name exist for every query type. The
-pre-rebuild lab used `address=` rules, which answer only A and let other types fall through to
-NXDOMAIN; see [[Troubleshooting]] (2026-09-15).
-
-`no-resolv` is required. Without it dnsmasq takes its upstreams from `/etc/resolv.conf`, which the
-client tasks point at dnsmasq itself. `bind-dynamic` rather than `bind-interfaces`: the first binds
-interfaces as they appear, the second binds at startup and fails if dnsmasq starts before the
-interface is up, which is a cold-boot race.
-
-Client side, two files: a NetworkManager drop-in at `/etc/NetworkManager/conf.d/90-dns-none.conf`
-containing `dns=none`, and `/etc/resolv.conf`. NetworkManager owns that file by default and
-overwrites anything written there, so it has to be told to stop before the resolver is set.
-
-## 3.4 Checks
-
-```
 ansible-playbook site.yml
 ansible all -m command -a 'chronyc sources'
 ansible ntp_servers -b -m command -a 'chronyc clients'
-ansible all -m command -a 'getent hosts vyos01.rangelab.internal'
+ansible all -m command -a 'dig +short vcenter01.rangelab.internal'
 ansible all -m command -a 'dig +short rockylinux.org'
 ansible all -m command -a 'dig infra01.rangelab.internal AAAA'
-ansible dns_servers -b -m command -a 'NetworkManager --print-config'
 ```
 
-Expected: a second run reports `changed=0` with no handlers firing; every node `^*` on its source,
-with clients one stratum below the server; the server listing its clients; lab and external names
-resolving; the AAAA query returning `NOERROR` with an empty answer section rather than `NXDOMAIN`;
-and `dns=none` present in the merged NetworkManager configuration.
+Expected: `pong` from both nodes; the second run reports `changed=0` with no handlers; every node
+`^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record, and external
+names resolving; the AAAA query returning `NOERROR` with an empty answer, not `NXDOMAIN`.
 
-**Verified 2026-09-18:** both nodes converged to `changed=0`; ansible01 synchronised to `10.10.10.2`
-at stratum 3 and listed as a client on infra01; lab, extra-record, and external names all resolving;
-AAAA returning NODATA.
+**Verified 2026-09-18:** both nodes at `changed=0`; ansible01 at stratum 3 from infra01; all names
+resolving; AAAA returning NODATA.
 
-On the DNS server, `getent hosts <its own FQDN>` returns a link-local IPv6 address rather than its
-lab address. That is `nss-myhostname` answering for the machine's own name after DNS returns NODATA
-for the AAAA query, not a DNS fault; `getent ahostsv4` returns the correct address. See
-[[Troubleshooting]] (2026-09-18).
+`getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
+`nss-myhostname`, not DNS; see [[Troubleshooting]] (2026-09-18).
 
 ---
 
@@ -607,28 +436,9 @@ reboot. Clear **Connect at power on** for the CD/DVD afterwards.
 
 The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
 and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
-becomes the datastore in 4.5.
+becomes the datastore in 4.4.
 
-## 4.3 Publish the DNS record first
-
-esxi01 is not an Ansible-managed node, so its record comes from `dns_extra_records` in
-`group_vars/all.yml`:
-
-```yaml
-dns_extra_records:
-  vyos01.rangelab.internal: 10.10.10.3
-  esxi01.rangelab.internal: 10.10.10.10
-```
-
-Converge from ansible01 so infra01 serves it before the DCUI test in 4.4:
-
-```
-ansible-playbook site.yml
-```
-
-Only the dnsmasq configuration and its restart handler change.
-
-## 4.4 Management network (DCUI)
+## 4.3 Management network (DCUI)
 
 **Configure Management Network:**
 
@@ -642,12 +452,13 @@ Only the dnsmasq configuration and its restart handler change.
 The DNS server stays an address; everything else refers to hosts by name (ADR-0008). Apply and
 restart the management network when prompted.
 
-**Troubleshooting Options → Enable SSH.** NTP in 4.5 is set over SSH.
+**Troubleshooting Options → Enable SSH.** NTP in 4.4 is set over SSH.
 
 **Test Management Network**, adding `1.1.1.1` as an extra address to ping. It pings the gateway,
-the DNS server, and the extra address, and resolves the host's own name.
+the DNS server, and the extra address, and resolves the host's own name, which infra01 has served
+since Stage 3.
 
-## 4.5 NTP and storage
+## 4.4 NTP and storage
 
 Over SSH as root:
 
@@ -656,21 +467,19 @@ esxcli system ntp set --server=infra01.rangelab.internal --enabled=true
 esxcli system ntp get
 ```
 
-`--enabled=true` starts `ntpd` and sets it to start with the host. ESXi 9's Host Client no longer
-has the Manage → Services page earlier releases used for the startup policy, so `esxcli` is the
-dependable path.
+`--enabled=true` starts `ntpd` and sets it to start with the host.
 
 In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datastore**, VMFS 6, on the
 400 GB disk, named `datastore01-01` ([[Naming Convention]]: first datastore on host 01).
 
-## 4.6 Certificate
+## 4.5 Certificate
 
 The installer generates a self-signed certificate before the hostname exists, so it names
 `localhost.localdomain`. It is left in place: vCenter trusts a host by accepted thumbprint when
 adding it, then replaces the certificate with a VMCA-signed one carrying the identifier used for the
 add. Stage 6 adds esxi01 **by FQDN** and checks the replacement.
 
-## 4.7 Checks
+## 4.6 Checks
 
 ```
 esxcli network ip interface ipv4 get
@@ -698,18 +507,8 @@ not managed by Ansible.
 
 ## 5.1 Pre-flight
 
-The installer validates DNS and fails, or worse, succeeds with a broken identity, if forward and
-reverse lookups disagree. Publish the record first, in `dns_extra_records`:
-
-```yaml
-  vcenter01.rangelab.internal: 10.10.10.15
-```
-
-```
-ansible-playbook site.yml
-```
-
-Then, from any lab node:
+The installer checks DNS. vcenter01's record has been served since Stage 3; confirm it from any
+lab node:
 
 ```
 dig +short vcenter01.rangelab.internal
@@ -717,8 +516,7 @@ dig -x 10.10.10.15 +short
 dig vcenter01.rangelab.internal AAAA
 ```
 
-Expected: `10.10.10.15`; `vcenter01.rangelab.internal.`; and `NOERROR` with an empty answer for the
-AAAA query. That last one is the check the pre-rebuild lab failed.
+Expected: `10.10.10.15`; `vcenter01.rangelab.internal.`; `NOERROR` with an empty answer.
 
 ## 5.2 Deploy the appliance (installer stage 1)
 
@@ -747,12 +545,8 @@ Root password recorded in `creds.md`.
 | Administrator | `administrator@vsphere.local`, password in `creds.md` |
 | CEIP | On |
 
-The SSO domain is vCenter's internal directory namespace, not a DNS name, so ADR-0005's objection to
-`.local` does not apply. It must never match an Active Directory domain, and it cannot be renamed
-without redeploying, so the default is kept.
-
-CEIP sends configuration and usage data to Broadcom now that the lab has egress. It can be turned
-off under Administration → Deployment → Customer Experience Improvement Program.
+`vsphere.local` is vCenter's internal directory name, not a DNS name. It must never match an Active
+Directory domain and cannot be renamed later.
 
 ## 5.4 Checks
 
