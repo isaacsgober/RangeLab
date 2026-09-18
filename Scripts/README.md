@@ -34,10 +34,10 @@ Arguments are separated by spaces, not commas.
 
 ```
 # SSH reachability for the two Rocky nodes
-python healthcheck.py ansible01.rangelab.local managed01.rangelab.local
+python healthcheck.py ansible01.rangelab.internal managed01.rangelab.internal
 
 # vCenter web UI, one-second timeout
-python healthcheck.py vcenter01.rangelab.local -p 443 -t 1
+python healthcheck.py vcenter01.rangelab.internal -p 443 -t 1
 ```
 
 ### Sample output
@@ -48,9 +48,9 @@ Checking port 443 (management web UI) across three hosts:
 ==================================================================
 CHECK CONNECTIVITY:
 ------------------------------------------------------------------
-vcenter01.rangelab.local | 10.10.10.15 | Port 443 is open
-ansible01.rangelab.local | 10.10.10.20 | Port 443 is closed (timeout)
-bogus.rangelab.local | could not be resolved
+vcenter01.rangelab.internal | 10.10.10.15 | Port 443 is open
+ansible01.rangelab.internal | 10.10.10.20 | Port 443 is closed (timeout)
+bogus.rangelab.internal | could not be resolved
 ------------------------------------------------------------------
 CONNECTIVITY CHECK COMPLETE: 1 pass, 2 fails
 ==================================================================
@@ -142,13 +142,11 @@ No arguments - prompts for username and password at runtime.
 ```
 Enter vCenter username: administrator@vsphere.local
 Enter password: 
-[]
+[{'memory_size_MiB': 21504, 'vm': 'vm-14', 'name': 'vcenter01', 'power_state': 'POWERED_ON', 'cpu_count': 4}]
 ```
 
-An empty list is the correct, current result; not a bug. vCenter has never successfully
-added esxi01 as a managed host (see [[Known-Issues]]), so every VM in the lab runs directly
-on esxi01, outside vCenter's inventory. Confirmed independently via `curl` and via
-`/api/vcenter/host` (also empty) before writing this script.
+The VM list comes from `/api/vcenter/vm` and includes vcenter01 itself,
+since it runs on esxi01, which vCenter now manages.
 
 ### Exit codes
 
@@ -189,12 +187,9 @@ on esxi01, outside vCenter's inventory. Confirmed independently via `curl` and v
 
 ### Known limitations
 
-- The VM list is always empty in this lab; see Sample output above. It is a real
-  infrastructure gap, not a script defect.
 - Every failure calls `raise SystemExit(1)`, ending the whole process. Fine for a
   standalone script; would need to change to `return`/a plain exception if a future
   reuse case wants to skip one failure and keep going (e.g. looping over several vCenters).
-- `host` is hardcoded (`vcenter01.rangelab.local`) — no command-line arguments.
+- `host` is hardcoded (`vcenter01.rangelab.internal`) — no command-line arguments.
 
-These limitations are tracked for a follow-up revision. Further testing will be done once esxi01
-is added to vCenter (see [[Known-Issues]]).
+These limitations are tracked for a follow-up revision.
