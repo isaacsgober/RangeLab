@@ -97,7 +97,7 @@ local VMFS datastore only above roughly 142 GB.
 
 ## Hosted Virtual Machines
 
-- [[vcenter01]] *(Stage 5)*
+- [[vcenter01]]
 - [[managed01]] *(Stage 6)*
 
 ---

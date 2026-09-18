@@ -687,3 +687,85 @@ Expected: `vmk0` at `10.10.10.10/24`; DNS server `10.10.10.2`; NTP enabled with
 **Verified 2026-09-18:** DCUI Test Management Network passed all four checks (gateway, DNS server,
 `1.1.1.1`, own-name resolution); `ntpq -p` showing `*` on infra01; `datastore01-01` created on the
 400 GB disk. Evaluation license expires 2026-12-16.
+
+---
+
+# Stage 5 - vcenter01
+
+vcenter01 is the vCenter Server Appliance, deployed onto esxi01. It is an appliance: configured
+through its installer, VAMI, and the vSphere Client, never by editing the Photon OS underneath, and
+not managed by Ansible.
+
+## 5.1 Pre-flight
+
+The installer validates DNS and fails, or worse, succeeds with a broken identity, if forward and
+reverse lookups disagree. Publish the record first, in `dns_extra_records`:
+
+```yaml
+  vcenter01.rangelab.internal: 10.10.10.15
+```
+
+```
+ansible-playbook site.yml
+```
+
+Then, from any lab node:
+
+```
+dig +short vcenter01.rangelab.internal
+dig -x 10.10.10.15 +short
+dig vcenter01.rangelab.internal AAAA
+```
+
+Expected: `10.10.10.15`; `vcenter01.rangelab.internal.`; and `NOERROR` with an empty answer for the
+AAAA query. That last one is the check the pre-rebuild lab failed.
+
+## 5.2 Deploy the appliance (installer stage 1)
+
+Run `vcsa-ui-installer\win32\installer.exe` from the VCSA 9.1 ISO on the Windows host, **Install**.
+
+| Setting | Value |
+| ------- | ----- |
+| Target | `esxi01.rangelab.internal`, root |
+| VM name | `vcenter01` |
+| Deployment size | Small (4 vCPU, 21 GB) |
+| Datastore | `datastore01-01`, thin disk mode |
+| Network | VM Network |
+| FQDN | `vcenter01.rangelab.internal` |
+| IP | `10.10.10.15/24`, gateway `10.10.10.3` |
+| DNS server | `10.10.10.2` |
+
+Root password recorded in `creds.md`.
+
+## 5.3 Configure the appliance (installer stage 2)
+
+| Setting | Value |
+| ------- | ----- |
+| Time synchronization | NTP, `infra01.rangelab.internal` |
+| SSH | Enabled |
+| SSO domain | `vsphere.local` |
+| Administrator | `administrator@vsphere.local`, password in `creds.md` |
+| CEIP | On |
+
+The SSO domain is vCenter's internal directory namespace, not a DNS name, so ADR-0005's objection to
+`.local` does not apply. It must never match an Active Directory domain, and it cannot be renamed
+without redeploying, so the default is kept.
+
+CEIP sends configuration and usage data to Broadcom now that the lab has egress. It can be turned
+off under Administration → Deployment → Customer Experience Improvement Program.
+
+## 5.4 Checks
+
+From the Windows host, without credentials:
+
+```
+echo | openssl s_client -connect 10.10.10.15:443 -servername vcenter01.rangelab.internal 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+```
+
+Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root (`DC=vsphere,
+DC=local`). Then sign in to the vSphere Client at `https://vcenter01.rangelab.internal/ui` as
+`administrator@vsphere.local`.
+
+**Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
+`CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
+Evaluation license expires 2026-12-17.

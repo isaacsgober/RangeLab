@@ -61,7 +61,7 @@ manual. See [[ansible01]].
 
 ## Evaluation licenses
 
-**Status:** open; ESXi recorded, vCenter at Stage 5.
+**Status:** open; both dates recorded below.
 
 ESXi and vCenter are deployed on fresh 90-day evaluations. Each expiry goes in the device note when
 the node is built.
@@ -69,4 +69,4 @@ the node is built.
 | Product | Expires |
 | ------- | ------- |
 | ESXi on [[esxi01]] | 2026-12-16 |
-| vCenter on [[vcenter01]] | Recorded at Stage 5 |
+| vCenter on [[vcenter01]] | 2026-12-17 |

@@ -38,6 +38,7 @@ Host Adapter: 10.10.10.1 - an address on this network, not a gateway
 - [[infra01]]
 - [[ansible01]]
 - [[esxi01]]
+- [[vcenter01]] (through esxi01)
 
 ---
 
