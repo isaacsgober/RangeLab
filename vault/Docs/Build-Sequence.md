@@ -192,6 +192,12 @@ save
 The saved configuration will contain more than the commands above: NTP, syslog, console,
 offload, `hw-id`, `commit-revisions`. Those are VyOS defaults, not lab decisions.
 
+Leave configuration mode before the checks:
+
+```
+exit
+```
+
 ## 1.5 Checks
 
 ```
