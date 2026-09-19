@@ -1,6 +1,6 @@
 # Managed by Ansible - local edits will be overwritten
 
-listen-address={{ hostvars[dns_server_host].ansible_host }}, 127.0.0.1
+listen-address={{ hostvars[dns_server_host].lab_address }}, 127.0.0.1
 bind-dynamic
 
 local=/{{ lab_domain }}/
@@ -14,7 +14,7 @@ bogus-priv
 no-hosts
 
 {% for host in groups['all'] %}
-host-record={{ host }},{{ hostvars[host].ansible_host }}
+host-record={{ host }},{{ hostvars[host].lab_address }}
 {% endfor %}
 {% for name, address in dns_extra_records.items() %}
 host-record={{ name }},{{ address }}

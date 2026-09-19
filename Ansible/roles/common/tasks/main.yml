@@ -3,8 +3,6 @@
   ansible.builtin.dnf:
     name: "{{ base_utils }}"
     state: present
-  tags:
-    - always
 
 - name: Create journald dropin directory
   ansible.builtin.file:
@@ -13,8 +11,6 @@
     owner: root
     group: root
     mode: "0755"
-  tags:
-    - always
 
 - name: Create journal log directory
   ansible.builtin.file:
@@ -23,8 +19,6 @@
     owner: root
     group: systemd-journal
     mode: "2755"
-  tags:
-    - always
   notify:
     - Restart journald
     - Flush journald
@@ -36,8 +30,6 @@
     owner: root
     group: root
     mode: "0644"
-  tags:
-    - always
   notify:
     - Restart journald
     - Flush journald

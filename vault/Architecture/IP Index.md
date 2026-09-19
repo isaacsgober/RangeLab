@@ -6,8 +6,7 @@ Allocation policy: [[ADR-0001 - IP addressing plan]].
 Since 2026-09-16 the network's default gateway is `.3` ([[vyos01]]), not `.1`. The host adapter
 keeps `.1` but routes nothing - see [[VMnet10]].
 
-*Rebuild in progress. Rows marked "held" are addresses reserved for nodes not yet rebuilt. `.2`
-passed from dnsmasqhost to [[infra01]] in Stage 2.*
+*`.2` passed from dnsmasqhost to [[infra01]] in the 2026-09-16 rebuild.*
 
 ## Allocation ranges
 
@@ -27,9 +26,9 @@ passed from dnsmasqhost to [[infra01]] in Stage 2.*
 | [[infra01]]                   | [[10.10.10.2]]  | Built 2026-09-17       |
 | [[vyos01]]                    | [[10.10.10.3]]  | Built 2026-09-16       |
 |                               |                 |                        |
-| [[esxi01]]                    | [[10.10.10.10]] | Held - Stage 4         |
-| [[vcenter01]]                 | [[10.10.10.15]] | Held - Stage 5         |
+| [[esxi01]]                    | [[10.10.10.10]] | Built 2026-09-18       |
+| [[vcenter01]]                 | [[10.10.10.15]] | Built 2026-09-18       |
 | [[ansible01]]                 | [[10.10.10.20]] | Built 2026-09-17       |
-| [[managed01]]                 | [[10.10.10.21]] | Held - Stage 6         |
+| [[managed01]]                 | [[10.10.10.21]] | Built 2026-09-18       |
 
 vyos01 also holds `192.168.132.3/24` on [[VMnet8]], outside this plan's scope.

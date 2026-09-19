@@ -12,7 +12,7 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-host = "vcenter01.rangelab.local"
+host = "vcenter01.rangelab.internal"
 
 
 def main():

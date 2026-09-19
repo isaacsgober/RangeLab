@@ -43,7 +43,7 @@ ansible01.rangelab.internal
 
 [[10.10.10.20]]
 
-Gateway `10.10.10.3` ([[vyos01]]); DNS `10.10.10.3` until [[infra01]] serves the lab zone.
+Gateway `10.10.10.3` ([[vyos01]]); DNS `10.10.10.2` ([[infra01]]).
 
 ---
 

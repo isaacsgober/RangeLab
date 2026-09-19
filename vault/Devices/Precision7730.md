@@ -22,9 +22,9 @@ Windows 11 Pro for Workstations
 ## Hostname
 P7730
 ## Domain
-rangelab.local
+None; the host has no record in the lab zone
 ## FQDN
-P7730.rangelab.local
+N/A
 
 ---
 
@@ -35,10 +35,16 @@ N/A
 
 ## Network
 
+VMnet10 host adapter:
+
 IPv4: [[10.10.10.1]]
 Mask: 255.255.255.0
-Gateway: To be configured.
-DNS: [[10.10.10.2]]
+Gateway: none, by design; host routing is unaffected by the lab
+DNS: [[10.10.10.2]] ([[infra01]])
+
+The adapter's DNS server is what lets the host resolve lab FQDNs, which ADR-0008 relies on for SSH,
+the vSphere Client, and the Host Client from Windows. Lab names resolve only once infra01 serves DNS
+(Stage 3).
 
 ---
 

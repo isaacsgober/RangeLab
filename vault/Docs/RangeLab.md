@@ -91,7 +91,6 @@ Public review history. A personal repo demonstrates the ability to write code; a
 ## Storage
 
 - [[datastore01-01]]
-- [[datastore01-02]]
 
 ---
 

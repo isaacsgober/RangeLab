@@ -232,6 +232,7 @@ Each stage ends with its checks passing before the next begins. Expected output 
 | vCenter size | `small` |
 | proxve01 | Untouched, out of scope |
 | Datacenter name | `rangelab` |
+| Host references | FQDNs wherever DNS is not needed to find DNS (ADR-0008, 2026-09-18) |
 
 ---
 

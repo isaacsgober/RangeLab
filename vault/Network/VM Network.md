@@ -1,41 +1,45 @@
 # VM Network
 
-> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
-> `rangelab.local` domain. Rewritten when Stage 4 of [[Build-Sequence]] rebuilds it.
-
-
 ## Purpose
 
-Default port group on [[vSwitch0]], the primary vSwitch for [[esxi01]]. Attached VMs are connected to [[VMnet10]] through the vSwitch uplink.
+Port group for virtual machines on [[esxi01]]'s [[vSwitch0]]. Its members sit on the lab network,
+[[VMnet10]], through the vSwitch's uplink.
 
 ---
+
 ## Type
 
-ESXi Standard Port Group
+ESXi standard port group
 
 ---
+
 ## IPv4 Network
 
-No addressing of its own.
-See [[VMnet10]].
+No addressing of its own; see [[VMnet10]].
+
+VLAN ID: 0 (untagged)
 
 ---
+
 ## Members
 
-- [[ansible01]]
-- [[managed01]]
 - [[vcenter01]]
+- [[managed01]]
 
 ---
+
 ## Notes
 
-Distinct from [[VMnet10]], which is the VMware Workstation host-only network on [[Precision7730]]. VM Network sits one layer above: [[esxi01]]'s vSwitch uplinks into VMnet10, so VMs on this port group share the same subnet as machines attached to VMnet10 directly (such as [[dnsmasqhost]]).
+VMnet10 is the Workstation host-only network on [[Precision7730]]; VM Network is one layer inside
+it. esxi01's uplink, `vmnic0`, is its `vmxnet3` adapter on VMnet10, so VMs on this port group share
+`10.10.10.0/24` with the nodes attached to VMnet10 directly: [[vyos01]], [[infra01]], and
+[[ansible01]].
 
 ---
+
 ## Related
 
 - [[vSwitch0]]
 - [[VMnet10]]
 - [[esxi01]]
-- [[ansible01]]
-- [[managed01]]
+- [[VM Layout]]

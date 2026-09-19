@@ -26,6 +26,17 @@ part of why the layout changed.
 
 ---
 
+## infra01 is a single point of failure for names, time, and management
+
+**Status:** accepted, by decision (ADR-0008).
+
+[[infra01]] serves DNS and NTP, and Ansible reaches every node by name through that DNS. If
+dnsmasq fails, name resolution, chrony clients, and name-based Ansible runs fail together.
+Recovery: `ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'` connects by address for
+that run and reconverges the DNS role.
+
+---
+
 ## vyos01 has no firewall policy
 
 **Status:** accepted for now; deferred by decision.
@@ -50,7 +61,12 @@ manual. See [[ansible01]].
 
 ## Evaluation licenses
 
-**Status:** open, dates to be recorded in Stage 4 and Stage 5.
+**Status:** open; both dates recorded below.
 
 ESXi and vCenter are deployed on fresh 90-day evaluations. Each expiry goes in the device note when
 the node is built.
+
+| Product | Expires |
+| ------- | ------- |
+| ESXi on [[esxi01]] | 2026-12-16 |
+| vCenter on [[vcenter01]] | 2026-12-17 |

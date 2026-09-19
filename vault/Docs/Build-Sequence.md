@@ -10,6 +10,8 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 - Commands are shown exactly as typed. Output shown is the real output, trimmed.
 - Every stage ends with checks. No stage begins until the previous stage's checks pass.
 - Values (addresses, names, sizes) come from [[IP Index]] and [[Naming Convention]].
+- Written for a rebuild from `main`: every file referenced already exists in the repository with
+  the lab's values.
 
 ## Prerequisites
 
@@ -20,9 +22,17 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 | Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 DVD, VMware ESXi 9.1, VCSA 9.1 |
 | Repository | This repo, cloned on the host |
 | Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
+| Host DNS | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on |
 
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
+
+When rebuilding over an earlier lab, clear the host's stale SSH host keys for every reused address
+first, or SSH refuses the new machines with "REMOTE HOST IDENTIFICATION HAS CHANGED":
+
+```
+ssh-keygen -R <address>
+```
 
 ---
 
@@ -192,12 +202,9 @@ Expected: both interfaces up with the addresses above; a default route via `192.
 three pings succeed; one NAT rule listed; and the `dig` returns `status: NOERROR` in tens of
 milliseconds.
 
-The `dig` is not optional: the pings only prove the router resolves for itself, and the forwarding
-service is what clients use.
+The `dig` tests the forwarder clients use; the pings only prove the router resolves for itself.
 
-**Result, 2026-09-16:** all three pings replied, including `vyos.net`, which also proves the
-adapter order was right, since the replies came back through `eth0`. **2026-09-17:**
-`dig @10.10.10.3` returned NOERROR in 32 ms after the forwarder was pointed at public resolvers.
+**Verified 2026-09-17:** all checks pass; `dig @10.10.10.3` returns NOERROR in 32 ms.
 
 From the Windows host, confirm management access:
 
@@ -205,20 +212,14 @@ From the Windows host, confirm management access:
 ssh vyos@10.10.10.3
 ```
 
-## 1.6 Record it
+## 1.6 Compare with the repository
 
 ```
 show configuration commands
 ```
 
-Save that output to [[vyos01.config]] (`vault/Network/vyos01.config.md`), with the hash on the
-`set system login user vyos authentication encrypted-password` line replaced by a placeholder  - 
-keeping the line shows the account exists without publishing its hash.
-
-Then write the device note, [[vyos01]], from the same output.
-
-**Not configured yet:** vyos01 has no firewall policy. Its WAN side sits on Workstation's private
-NAT network, so it isn't exposed to the internet directly. Tracked as a follow-up.
+The output should match [[vyos01.config]], apart from the `hw-id` MAC addresses and the password
+hash.
 
 ---
 
@@ -271,9 +272,7 @@ Identical for both machines except the highlighted rows.
 
 Begin installation, then reboot and disconnect the ISO.
 
-**Why DNS points at the router here:** infra01 is not serving DNS yet; it is the machine being
-installed. `10.10.10.3` forwards to the internet so `dnf` works immediately. Stage 3 switches both
-nodes to infra01 once dnsmasq is running.
+DNS points at vyos01 until Stage 3 moves every node to infra01.
 
 ## 2.3 Checks after first boot
 
@@ -293,7 +292,7 @@ TZ: no"; SELinux `Enforcing`; the gateway replies; and `dnf` reaches the Rocky m
 
 ## 2.4 Prepare ansible01 as the control node
 
-Install git, then Ansible and the linters into one virtual environment:
+As `labadmin`:
 
 ```
 sudo dnf -y install git
@@ -301,242 +300,378 @@ sudo python3 -m venv /opt/ansible
 sudo /opt/ansible/bin/pip install --upgrade pip
 sudo /opt/ansible/bin/pip install ansible-core ansible-lint yamllint
 echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
-```
-
-Rocky ships `ansible-core` 2.16; pip installs the current release. Putting ansible-core and
-ansible-lint in the same environment keeps the linter and the runtime on one version; installed
-separately, the linter checks playbooks against a core the node does not run.
-
-Ansible here is pip-managed, so `dnf update` will not touch it. Refresh it with
-`sudo /opt/ansible/bin/pip install -U ansible-core ansible-lint`.
-
-`PATH` from `/etc/profile.d` reaches login and interactive shells, but not cron, systemd units, or
-`ssh host '<command>'`. Use the full `/opt/ansible/bin/` path in those.
-
-**Playbooks run as `labadmin`, not as the `ansible` account.** `ansible` is the account Ansible
-logs in to on managed nodes (ADR-0002); the account invoking `ansible-playbook` does not have to
-carry that name. Running as labadmin keeps the working copy, the SSH key, and the collections in
-one account that owns its own home, which removes every `sudo -u` and permission workaround from
-routine use.
-
-Generate the key Ansible presents to managed nodes:
-
-```
 ssh-keygen -t ed25519 -N '' -C 'labadmin@ansible01' -f ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub
-```
-
-No passphrase, so playbooks run unattended; the private key stays on this host and out of the
-repository. Stage 3's bootstrap play installs the public key on every node.
-
-Clone the repository (public, so no credentials) and add the collection the playbooks need:
-
-```
-git clone -b <working-branch> https://github.com/isaacsgober/RangeLab.git ~/RangeLab
+git clone https://github.com/isaacsgober/RangeLab.git ~/RangeLab
 ansible-galaxy collection install ansible.posix
 ```
 
-Collections install per account, under `~/.ansible/collections`, so this runs as the account that
-runs playbooks. Name the branch explicitly; a plain clone lands on `main`.
+Log out and back in so the `PATH` change applies.
 
-The `ansible` service account is **not** created here. `bootstrap.yml` creates it on every node
-including this one, so there is one mechanism rather than a hand-built exception.
+- Ansible comes from pip rather than Rocky's 2.16 package, in one environment with ansible-lint so
+  both use the same core. `dnf update` does not update it.
+- Playbooks run as `labadmin`. `ansible` is the account Ansible logs in to on managed nodes, and
+  Stage 3 creates it on every node, this one included (ADR-0002).
+- The key has no passphrase so playbooks run unattended; it never leaves this host.
 
 ## 2.5 Checks
-
-As `labadmin`:
 
 ```
 which ansible-playbook
 ansible --version | head -1
 ansible-lint --version
 ansible-galaxy collection list | grep posix
-git -C ~/RangeLab log --oneline -1
 ```
 
-Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from both `ansible`
-and `ansible-lint`**; `ansible.posix` listed; the clone's latest commit matching GitHub.
+Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from `ansible` and
+`ansible-lint`**; `ansible.posix` listed.
 
-**Verified 2026-09-17:** ansible-core 2.21.4 (pip), ansible-lint 26.8.0 on the same core,
-ansible.posix 2.2.2, Python 3.12.13, clone at `bc756a5`.
-
-Record the installed versions in the device note; they pin what this build was tested with.
+**Verified 2026-09-17:** ansible-core 2.21.4, ansible-lint 26.8.0 on the same core,
+ansible.posix 2.2.2.
 
 ---
 
-# Stage 3 - Ansible: bootstrap and the base roles
+# Stage 3 - Ansible: bootstrap and converge
 
-Stage 3 turns two installed machines into managed nodes, then configures time and DNS from the
-repository. Everything here runs from `~labadmin/RangeLab/Ansible` on ansible01.
+Turns infra01 and ansible01 into managed nodes and configures time and DNS. Everything runs from
+`~/RangeLab/Ansible` on ansible01, as `labadmin`. The inventory, variables, and roles are already in
+the repository; their layout is in `Ansible/README.md`.
 
-Layout produced by this stage:
+The inventory names every node by FQDN and keeps its address in `lab_address` (ADR-0008).
+`dns_extra_records` lists the nodes Ansible does not manage, so their records exist from the first
+converge, before those nodes are built.
 
-```
-Ansible/
-├── ansible.cfg
-├── bootstrap.yml
-├── site.yml
-├── inventory/hosts.yml
-├── group_vars/all.yml
-└── roles/{common,ntp,dns}/{tasks,handlers,templates,files}
-```
+## 3.1 Bootstrap
 
-## 3.1 Inventory and variables
-
-Each host is declared once under `all.hosts` with its `ansible_host`, and groups below it carry
-membership only. Groups are named for the service a member provides, so a node's role is declared
-in exactly one place.
-
-```yaml
-all:
-  vars:
-    ansible_user: ansible
-    ansible_python_interpreter: /usr/bin/python3
-  hosts:
-    ansible01.rangelab.internal:
-      ansible_host: 10.10.10.20
-    infra01.rangelab.internal:
-      ansible_host: 10.10.10.2
-  children:
-    control:
-      hosts:
-        ansible01.rangelab.internal:
-    dns_servers:
-      hosts:
-        infra01.rangelab.internal:
-    ntp_servers:
-      hosts:
-        infra01.rangelab.internal:
-```
-
-`ansible_host` carries the address so nothing depends on DNS that does not exist yet.
-`ansible_python_interpreter` is pinned because ansible01 has `/opt/ansible/bin` first on `PATH`;
-without the pin, modules there run under the virtual environment's Python, which cannot import the
-system `dnf` bindings.
-
-`group_vars/all.yml` derives service addresses from the inventory rather than repeating them:
-
-```yaml
-dns_server_host: "{{ groups['dns_servers'] | first }}"
-ntp_server_host: "{{ groups['ntp_servers'] | first }}"
-lab_network: 10.10.10.0/24
-lab_domain: rangelab.internal
-dns_upstream: 10.10.10.3
-dns_extra_records:
-  vyos01.rangelab.internal: 10.10.10.3
-```
-
-`dns_extra_records` covers hosts Ansible does not manage; managed hosts come from the inventory.
-
-## 3.2 Bootstrap
-
-`bootstrap.yml` creates the `ansible` service account, authorises the control node's public key,
-and installs the sudoers drop-in (ADR-0002). It runs once per node, as `labadmin` with password
-authentication, because the key it installs does not exist on the targets yet.
-
-Accept each host key first. SSH refuses unknown hosts non-interactively, and Ansible cannot answer
-the prompt:
+No lab name resolves yet, so the first two runs connect by address. Accept each host key first;
+Ansible cannot answer SSH's prompt:
 
 ```
 ssh labadmin@10.10.10.2 exit
 ssh labadmin@10.10.10.20 exit
+ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_address }}' -k -K
 ```
 
+Creates the `ansible` service account, authorises ansible01's key, and installs the sudoers
+drop-in (ADR-0002). Use `-e`, not `-u`: command-line options lose to inventory variables, extra
+vars win. Expect `changed=3` per node.
+
+## 3.2 First converge
+
 ```
-ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K
+ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'
 ```
 
-**Use `-e`, not `-u`.** Command-line values such as `-u` sit at the bottom of Ansible's variable
-precedence and lose to `ansible_user` from the inventory. Extra vars win outright.
+| Role | Result |
+| ---- | ------ |
+| `common` | Base utilities, persistent journal; `--tags update` runs a package update |
+| `ntp` | chrony: infra01 syncs from the public pool and serves the lab; every other node syncs from infra01 |
+| `dns` | dnsmasq on infra01 with records generated from the inventory; every node resolves through it |
 
-Expect `changed=3` per node on the first run. Then, with no flags at all:
+Names resolve from here on. Accept each host key again by name, since SSH records keys per name:
+
+```
+ssh ansible@infra01.rangelab.internal exit
+ssh ansible@ansible01.rangelab.internal exit
+```
+
+Later runs need no flags. If DNS fails, `-e 'ansible_host={{ lab_address }}'` restores
+connectivity for a run.
+
+## 3.3 Checks
 
 ```
 ansible all -m ping
-```
-
-`pong` from both nodes proves the account, the key, and the inventory together.
-
-## 3.3 The roles
-
-`site.yml` applies them in order; role order in the list is execution order.
-
-```yaml
----
-- name: Configure all nodes
-  hosts: all
-  become: true
-  roles:
-    - common
-    - ntp
-    - dns
-```
-
-**common** installs the base utilities and makes the journal persistent. A package-update task is
-tagged `never, update`, so it runs only with `--tags update`.
-
-**ntp** installs chrony, templates `/etc/chrony.conf`, runs `chronyd`, and opens 123/UDP on the
-time server. One template serves both sides and branches on group membership:
-
-```jinja
-{% if 'ntp_servers' in group_names %}
-pool 2.rocky.pool.ntp.org iburst
-allow {{ lab_network }}
-{% else %}
-server {{ hostvars[ntp_server_host].ansible_host }} iburst
-{% endif %}
-```
-
-The client line uses `hostvars[...]` rather than a name, so time does not depend on DNS.
-
-**dns** has server tasks gated on `dns_servers` membership and client tasks that run everywhere,
-the DNS server included, since it resolves through itself. Client tasks come last: under the
-default `linear` strategy every host finishes a task before any host starts the next, so dnsmasq is
-serving before anything is pointed at it.
-
-Server side, `/etc/dnsmasq.conf` is templated whole. Records are generated from the inventory:
-
-```jinja
-{% for host in groups['all'] %}
-host-record={{ host }},{{ hostvars[host].ansible_host }}
-{% endfor %}
-```
-
-`host-record` creates the A and the PTR together and makes the name exist for every query type. The
-pre-rebuild lab used `address=` rules, which answer only A and let other types fall through to
-NXDOMAIN; see [[Troubleshooting]] (2026-09-15).
-
-`no-resolv` is required. Without it dnsmasq takes its upstreams from `/etc/resolv.conf`, which the
-client tasks point at dnsmasq itself. `bind-dynamic` rather than `bind-interfaces`: the first binds
-interfaces as they appear, the second binds at startup and fails if dnsmasq starts before the
-interface is up, which is a cold-boot race.
-
-Client side, two files: a NetworkManager drop-in at `/etc/NetworkManager/conf.d/90-dns-none.conf`
-containing `dns=none`, and `/etc/resolv.conf`. NetworkManager owns that file by default and
-overwrites anything written there, so it has to be told to stop before the resolver is set.
-
-## 3.4 Checks
-
-```
 ansible-playbook site.yml
 ansible all -m command -a 'chronyc sources'
 ansible ntp_servers -b -m command -a 'chronyc clients'
-ansible all -m command -a 'getent hosts vyos01.rangelab.internal'
+ansible all -m command -a 'dig +short vcenter01.rangelab.internal'
 ansible all -m command -a 'dig +short rockylinux.org'
 ansible all -m command -a 'dig infra01.rangelab.internal AAAA'
-ansible dns_servers -b -m command -a 'NetworkManager --print-config'
 ```
 
-Expected: a second run reports `changed=0` with no handlers firing; every node `^*` on its source,
-with clients one stratum below the server; the server listing its clients; lab and external names
-resolving; the AAAA query returning `NOERROR` with an empty answer section rather than `NXDOMAIN`;
-and `dns=none` present in the merged NetworkManager configuration.
+Expected: `pong` from both nodes; the second run reports `changed=0` with no handlers; every node
+`^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record, and external
+names resolving; the AAAA query returning `NOERROR` with an empty answer, not `NXDOMAIN`.
 
-**Verified 2026-09-18:** both nodes converged to `changed=0`; ansible01 synchronised to `10.10.10.2`
-at stratum 3 and listed as a client on infra01; lab, extra-record, and external names all resolving;
-AAAA returning NODATA.
+**Verified 2026-09-18:** both nodes at `changed=0`; ansible01 at stratum 3 from infra01; all names
+resolving; AAAA returning NODATA.
 
-On the DNS server, `getent hosts <its own FQDN>` returns a link-local IPv6 address rather than its
-lab address. That is `nss-myhostname` answering for the machine's own name after DNS returns NODATA
-for the AAAA query, not a DNS fault; `getent ahostsv4` returns the correct address. See
-[[Troubleshooting]] (2026-09-18).
+`getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
+`nss-myhostname`, not DNS; see [[Troubleshooting]] (2026-09-18).
+
+## 3.4 Adding a node
+
+For a Rocky node installed after this stage, such as managed01 in Stage 6. A node new to the lab
+first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a rebuild from
+`main` already has one.
+
+Publish the node's DNS record, then bootstrap and converge it by name:
+
+```
+ansible-playbook site.yml --limit dns_servers --tags dns
+ssh labadmin@<fqdn> exit
+ansible-playbook bootstrap.yml -e ansible_user=labadmin -k -K --limit <fqdn>
+ansible-playbook site.yml
+```
+
+`--limit` restricts which hosts run tasks, not which hosts the inventory holds, so the DNS server
+generates the new node's record even though nothing runs on the new node. Limiting by the
+`dns_servers` group keeps the command independent of which host serves DNS.
+
+Expected: `ansible all -m ping` answers from every node, and a second `site.yml` run reports
+`changed=0`.
+
+---
+
+# Stage 4 - esxi01, the nested hypervisor
+
+esxi01 is a VMware ESXi 9.1 host running inside Workstation. It hosts vcenter01 and managed01 and
+nothing else; the services the lab depends on stay outside it (ADR-0006). ESXi is configured by
+hand in the DCUI and over SSH, not by Ansible.
+
+## 4.1 Create the VM
+
+**File → New Virtual Machine → Custom**.
+
+| Setting | Value | Why |
+| ------- | ----- | --- |
+| Guest OS | VMware ESX → VMware ESXi 9 | The profile forces EFI; no firmware choice is offered |
+| Name | `esxi01` | [[Naming Convention]] |
+| Processors | 1 socket, 6 cores | Room for vcenter01 (`small`, 4 vCPU) and managed01 |
+| Memory | 64 GB | vcenter01 `small` needs 21 GB |
+| Disk 1 | 128 GB, single file, PVSCSI | Boot device |
+| Disk 2 | 400 GB, single file, same controller | Datastore; add in VM Settings after the wizard, which creates only one disk |
+| Network adapter | Custom → **VMnet10**, `vmxnet3` | Management network |
+| CD/DVD | `VMware-VMvisor-Installer-9.1.0.0200.25557999.x86_64.iso` | Install media |
+
+Processors → **Virtualize Intel VT-x/EPT or AMD-V/RVI** must be checked (`vhv.enable = "TRUE"`).
+The ESXi profile checks it by default; without it nothing can run inside esxi01. Then, powered off,
+add to `esxi01.vmx`:
+
+```
+rtc.diffFromUTC = "0"
+```
+
+## 4.2 Install
+
+Boot from the ISO, install to the 128 GB disk, set the root password (recorded in `creds.md`), and
+reboot. Clear **Connect at power on** for the CD/DVD afterwards.
+
+The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
+and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
+becomes the datastore in 4.4.
+
+## 4.3 Management network (DCUI)
+
+**Configure Management Network:**
+
+| Setting | Value |
+| ------- | ----- |
+| IPv4 | Static, `10.10.10.10`, `255.255.255.0`, gateway `10.10.10.3` |
+| DNS servers | `10.10.10.2` |
+| Hostname | `esxi01.rangelab.internal` |
+| Custom DNS suffixes | `rangelab.internal` |
+
+The DNS server stays an address; everything else refers to hosts by name (ADR-0008). Apply and
+restart the management network when prompted.
+
+**Troubleshooting Options → Enable SSH.** NTP in 4.4 is set over SSH.
+
+**Test Management Network**, adding `1.1.1.1` as an extra address to ping. It pings the gateway,
+the DNS server, and the extra address, and resolves the host's own name, which infra01 has served
+since Stage 3.
+
+## 4.4 NTP and storage
+
+Over SSH as root:
+
+```
+esxcli system ntp set --server=infra01.rangelab.internal --enabled=true
+esxcli system ntp get
+```
+
+`--enabled=true` starts `ntpd` and sets it to start with the host.
+
+In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datastore**, VMFS 6, on the
+400 GB disk, named `datastore01-01` ([[Naming Convention]]: first datastore on host 01).
+
+## 4.5 Certificate
+
+The installer's self-signed certificate names `localhost.localdomain`. Leave it: when vCenter adds
+the host in Stage 6, it accepts the certificate by thumbprint and replaces it with a VMCA-signed one
+carrying the name used for the add. Add **by FQDN**; adding by IP puts an IP-only SAN in the
+replacement.
+
+**Verified 2026-09-18:** after the add, `rui.crt` shows `DNS:esxi01.rangelab.internal`, issued by
+the VMCA root. No manual regeneration needed.
+
+## 4.6 Checks
+
+```
+esxcli network ip interface ipv4 get
+esxcli network ip dns server list
+esxcli system ntp get
+ntpq -p
+esxcli storage filesystem list
+```
+
+Expected: `vmk0` at `10.10.10.10/24`; DNS server `10.10.10.2`; NTP enabled with
+`infra01.rangelab.internal`; `ntpq -p` showing `*` against infra01 after a few minutes;
+`datastore01-01` mounted, about 400 GB, VMFS 6, and no datastore on the boot disk.
+
+**Verified 2026-09-18:** DCUI Test Management Network passed all four checks (gateway, DNS server,
+`1.1.1.1`, own-name resolution); `ntpq -p` showing `*` on infra01; `datastore01-01` created on the
+400 GB disk. Evaluation license expires 2026-12-16.
+
+---
+
+# Stage 5 - vcenter01
+
+vcenter01 is the vCenter Server Appliance, deployed onto esxi01. It is an appliance: configured
+through its installer, VAMI, and the vSphere Client, never by editing the Photon OS underneath, and
+not managed by Ansible.
+
+## 5.1 Pre-flight
+
+The installer checks DNS. vcenter01's record has been served since Stage 3; confirm it from any
+lab node:
+
+```
+dig +short vcenter01.rangelab.internal
+dig -x 10.10.10.15 +short
+dig vcenter01.rangelab.internal AAAA
+```
+
+Expected: `10.10.10.15`; `vcenter01.rangelab.internal.`; `NOERROR` with an empty answer.
+
+## 5.2 Deploy the appliance (installer stage 1)
+
+Run `vcsa-ui-installer\win32\installer.exe` from the VCSA 9.1 ISO on the Windows host, **Install**.
+
+| Setting | Value |
+| ------- | ----- |
+| Target | `esxi01.rangelab.internal`, root |
+| VM name | `vcenter01` |
+| Deployment size | Small (4 vCPU, 21 GB) |
+| Datastore | `datastore01-01`, thin disk mode |
+| Network | VM Network |
+| FQDN | `vcenter01.rangelab.internal` |
+| IP | `10.10.10.15/24`, gateway `10.10.10.3` |
+| DNS server | `10.10.10.2` |
+
+Root password recorded in `creds.md`.
+
+## 5.3 Configure the appliance (installer stage 2)
+
+| Setting | Value |
+| ------- | ----- |
+| Time synchronization | NTP, `infra01.rangelab.internal` |
+| SSH | Enabled |
+| SSO domain | `vsphere.local` |
+| Administrator | `administrator@vsphere.local`, password in `creds.md` |
+| CEIP | On |
+
+`vsphere.local` is vCenter's internal directory name, not a DNS name. It must never match an Active
+Directory domain and cannot be renamed later.
+
+## 5.4 Checks
+
+From the Windows host, without credentials:
+
+```
+echo | openssl s_client -connect 10.10.10.15:443 -servername vcenter01.rangelab.internal 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+```
+
+Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root (`DC=vsphere,
+DC=local`). Then sign in to the vSphere Client at `https://vcenter01.rangelab.internal/ui` as
+`administrator@vsphere.local`.
+
+**Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
+`CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
+Evaluation license expires 2026-12-17.
+
+---
+
+# Stage 6 - vSphere configuration and managed01
+
+Brings esxi01 under vCenter, sets the host's startup order, and builds managed01, the Rocky node
+nested inside esxi01.
+
+## 6.1 Datacenter and host
+
+In the vSphere Client at `https://vcenter01.rangelab.internal/ui`:
+
+1. **New Datacenter**: `rangelab`.
+2. **Add Host**: `esxi01.rangelab.internal`, by FQDN, with the root credentials. Accept the
+   certificate thumbprint, keep the evaluation license, and leave lockdown mode disabled.
+
+vCenter replaces esxi01's installer certificate with a VMCA-signed one carrying the FQDN. Adding
+by IP would put an IP-only SAN in that certificate.
+
+## 6.2 Startup and shutdown order
+
+esxi01 → Configure → **VM Startup/Shutdown** → Edit:
+
+| Setting | Value |
+| ------- | ----- |
+| Automatically start and stop the virtual machines with the system | Checked |
+| Default startup delay / shutdown delay | 120 s / 120 s |
+| Continue if VMware Tools is started | Checked |
+| Shutdown action | Guest shutdown |
+
+| Order | VM | Startup | VMware Tools | Shutdown delay |
+| ----- | -- | ------- | ------------ | -------------- |
+| 1 | vcenter01 | Enabled | System default | 600 s |
+| 2 | managed01 | Enabled | System default | 120 s |
+
+vcenter01 starts first because it takes longest to become usable; DNS and time are already up
+outside esxi01. It gets 600 seconds to shut down, since a guest cut off mid-shutdown is powered off,
+and hard-stopping the appliance's database can corrupt vCenter. Guest shutdown requires VMware
+Tools in each guest.
+
+## 6.3 Create managed01
+
+New Virtual Machine on esxi01:
+
+| Setting | Value |
+| ------- | ----- |
+| Name | `managed01` |
+| Storage | `datastore01-01`, thin; Storage DRS setting irrelevant with a single datastore |
+| Guest OS | Linux → Red Hat Enterprise Linux 10 (64-bit) |
+| CPU / memory | 2 vCPU / 2 GB |
+| Disk | 30 GB, PVSCSI |
+| Network | VM Network, `vmxnet3` |
+| Firmware | EFI (the profile's default) |
+| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, uploaded to `datastore01-01` |
+
+The boot ISO holds only the installer and pulls packages from the Rocky mirrors, which works for
+any node built after Stage 3: a 1 GB upload instead of the 10 GB DVD.
+
+Install with the Stage 2.2 settings, except:
+
+- **Network first.** Address `10.10.10.21`, hostname `managed01.rangelab.internal`, DNS
+  `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from the
+  start.
+- **Installation Source**: closest mirror, no proxy.
+
+Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.2 depends on.
+
+## 6.4 Bring managed01 under Ansible
+
+Add it as a node per 3.4. Its inventory entry already exists in `main`.
+
+## 6.5 Checks
+
+```
+echo | openssl s_client -connect esxi01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+ansible managed01.rangelab.internal -m command -a 'chronyc sources'
+ansible managed01.rangelab.internal -m command -a 'rpm -q open-vm-tools'
+ansible all -m ping
+```
+
+Expected: esxi01's certificate issued by the VMCA root with `DNS:esxi01.rangelab.internal`;
+managed01 `^*` on infra01; `open-vm-tools` installed; `pong` from all three managed nodes.
+
+**Verified 2026-09-18:** esxi01 certificate VMCA-issued with the FQDN SAN; managed01 on Rocky 10.2,
+EFI, `vmxnet3`, synchronised to infra01 at stratum 3, resolving through `10.10.10.2`,
+`open-vm-tools` 13.0.10; all three nodes converged to `changed=0`.

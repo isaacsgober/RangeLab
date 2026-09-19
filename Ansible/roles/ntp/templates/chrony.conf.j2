@@ -4,7 +4,7 @@
 pool 2.rocky.pool.ntp.org iburst
 allow {{ lab_network }}
 {% else %}
-server {{ hostvars[ntp_server_host].ansible_host }} iburst
+server {{ ntp_server_host }} iburst
 {% endif %}
 
 driftfile /var/lib/chrony/drift
