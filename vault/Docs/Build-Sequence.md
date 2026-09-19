@@ -625,6 +625,9 @@ Then, New Virtual Machine on esxi01:
 | Firmware | EFI (the profile's default) |
 | CD/DVD | Datastore ISO File, `Rocky-10.2-x86_64-boot.iso` on `datastore01-01`; **Connect At Power On** checked |
 
+Power on managed01 and open **Launch Web Console**; it runs in the browser, while **Launch Remote
+Console** needs VMware Remote Console installed on the host.
+
 Install with the Stage 2.2 settings, except:
 
 - Address `10.10.10.21`, hostname `managed01.rangelab.internal`.
