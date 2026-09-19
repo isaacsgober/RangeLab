@@ -597,10 +597,14 @@ In the vSphere Client at `https://vcenter01.rangelab.internal/ui`:
 
 1. **New Datacenter**: `rangelab`.
 2. **Add Host**: `esxi01.rangelab.internal`, by FQDN, with the root credentials. Accept the
-   certificate thumbprint, keep the evaluation license, and leave lockdown mode disabled.
+   certificate thumbprint. At **Host lifecycle**, choose **Extract the image on the host**. Keep
+   the evaluation license, and leave lockdown mode disabled.
 
 vCenter replaces esxi01's installer certificate with a VMCA-signed one carrying the FQDN. Adding
 by IP would put an IP-only SAN in that certificate.
+
+Extracting adopts the ESXi image already installed on esxi01 as the host's desired image. The other
+options build an image from a software depot, and none is configured in this lab.
 
 ## 6.2 Startup and shutdown order
 
