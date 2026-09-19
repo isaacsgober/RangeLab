@@ -415,8 +415,8 @@ and external names resolving; the AAAA query returning `NOERROR` with an empty a
 ## 3.4 Adding a node
 
 For a Rocky node installed after this stage, such as managed01 in Stage 6. A node new to the lab
-first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a rebuild from
-`main` already has one.
+first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a node already in
+`main`'s inventory, such as managed01, has one.
 
 Publish the node's DNS record, then bootstrap and converge it by name:
 
