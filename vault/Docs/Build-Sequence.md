@@ -509,17 +509,7 @@ esxcli system ntp get
 In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datastore**, VMFS 6, on the
 400 GB disk, named `datastore01-01` ([[Naming Convention]]: first datastore on host 01).
 
-## 4.5 Certificate
-
-The installer's self-signed certificate names `localhost.localdomain`. Leave it: when vCenter adds
-the host in Stage 6, it accepts the certificate by thumbprint and replaces it with a VMCA-signed one
-carrying the name used for the add. Add **by FQDN**; adding by IP puts an IP-only SAN in the
-replacement.
-
-**Verified 2026-09-18:** after the add, `rui.crt` shows `DNS:esxi01.rangelab.internal`, issued by
-the VMCA root. No manual regeneration needed.
-
-## 4.6 Checks
+## 4.5 Checks
 
 ```
 esxcli network ip interface ipv4 get
@@ -532,10 +522,6 @@ esxcli storage filesystem list
 Expected: `vmk0` at `10.10.10.10/24`; DNS server `10.10.10.2`; NTP enabled with
 `infra01.rangelab.internal`; `ntpq -p` showing `*` against infra01 after a few minutes;
 `datastore01-01` mounted, about 400 GB, VMFS 6, and no datastore on the boot disk.
-
-**Verified 2026-09-18:** DCUI Test Management Network passed all four checks (gateway, DNS server,
-`1.1.1.1`, own-name resolution); `ntpq -p` showing `*` on infra01; `datastore01-01` created on the
-400 GB disk. Evaluation license expires 2026-12-16.
 
 ---
 
