@@ -675,6 +675,8 @@ Tools in each guest.
 
 ## 6.5 Checks
 
+From `~/RangeLab/Ansible` on ansible01:
+
 ```
 echo | openssl s_client -connect esxi01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
 ansible managed01.rangelab.internal -m command -a 'chronyc sources'
