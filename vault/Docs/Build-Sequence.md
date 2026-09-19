@@ -17,14 +17,14 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 
 ## Prerequisites
 
-| Item | Value |
-| ---- | ----- |
-| Host | Windows 11 with VMware Workstation 26 |
-| Networks | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
-| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 boot ISO, VMware ESXi 9.1, VCSA 9.1 |
-| Repository | This repo, cloned on the host |
-| Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
-| Host DNS | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on |
+| Item             | Value                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host             | Windows 11 with VMware Workstation 26                                                                                                                 |
+| Networks         | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
+| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 boot ISO, VMware ESXi 9.1, VCSA 9.1                                                                             |
+| Repository       | This repo, cloned on the host                                                                                                                         |
+| Firmware         | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it                                                                        |
+| Host DNS         | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on                                                 |
 
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
