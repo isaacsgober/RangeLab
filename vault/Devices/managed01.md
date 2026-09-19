@@ -1,100 +1,106 @@
 # managed01
 
-> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
-> `rangelab.local` domain. Rewritten when Stage 6 of [[Build-Sequence]] rebuilds it.
-
-
 ## Purpose
 
-Ansible managed node.
+Ansible-managed Rocky node nested inside [[esxi01]]: the node the lab's configuration management
+exists to manage.
 
 ---
+
 ## Status
 
-Running
+**Running** - built 2026-09-18
 
 ---
+
 ## Operating System
 
 Rocky Linux
+
 ### Version
 
-10.2 (x86_64)
+10.2 (x86_64), Minimal Install, EFI firmware
 
 ---
+
 ## Hostname
 
 managed01
+
 ## Domain
 
-rangelab.local
+rangelab.internal
+
 ## FQDN
 
-managed01.rangelab.local
+managed01.rangelab.internal
 
 ---
+
 ## IP Address
 
 [[10.10.10.21]]
 
+Gateway `10.10.10.3` ([[vyos01]]); DNS `10.10.10.2` ([[infra01]]). The DNS record is generated
+from the Ansible inventory.
+
 ---
+
 ## Hosted On
 
-[[esxi01]]
+[[esxi01]], on [[datastore01-01]] (thin)
 
 ---
+
 ## Network
 
-[[VM Network]]
+[[VMnet10]], through esxi01's VM Network port group; `vmxnet3` (`ens33`)
 
 ---
+
 ## Management
 
-SSH: `<user>@managed01.rangelab.local`
+SSH: `labadmin@managed01.rangelab.internal` (password)
+Ansible: as `ansible`, by key from [[ansible01]]
 
 ---
+
 ## Resources
 
 ### CPU
 
 2 vCPU
+
 ### Memory
 
-2GB
+2 GB
+
 ### Storage
 
-30GB
+30 GB, thin, PVSCSI
 
 ---
+
 ## Services
 
-- [[chrony]] - NTP client of [[ansible01]]
+- [[chrony]] client of [[infra01]]
 
 ---
+
 ## Notes
 
-Package installation is handled through a local repository built from the Rocky 10.2 DVD ISO, mounted at `/mnt/rocky-iso`. The `baseos`, `appstream`, and `extras` repos are disabled; `local-baseos` and `local-appstream` are defined in `/etc/yum.repos.d/local-iso.repo`.
-
-The ISO is mounted read-only at `/mnt/rocky-iso` at boot via `/etc/fstab` (`/dev/sr0`, `iso9660`, `ro,nofail`); `nofail` lets the node boot even if the ISO is detached from the virtual drive. See [ADR-0003](../Architecture/Decision%20Records/ADR-0003%20-%20Local%20ISO%20package%20repository.md).
-
-The ISO image was already connected to this VM's drive (inherited from the [[ansible01]] clone), but nothing mounted it and there was no `/etc/fstab` entry, so the repository was dead after every boot until the fstab line was added on 2026-09-07.
-
-Managed by [[ansible01]] using the `ansible` service account defined in [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account). 
-
-This machine was cloned from [[ansible01]].
-
-`ansible-core` is installed rather than the full `ansible` package.
-
-`~ansible/.ssh/authorized_keys` holds [[ansible01]]'s Ed25519 public key - the `ansible` account is reachable by key from the control node (Phase 2 / [ADR-0002](../Architecture/Decision%20Records/ADR-0002%20-%20Dedicated%20service%20account)).
-
-Time is synced from [[ansible01]] via [[chrony]] (`server ansible01.rangelab.local iburst`, `makestep 1.0 -1`).
-
-Starts second in [[esxi01]]'s autostart order.
+2026-09-18:
+	Installed from `Rocky-10.2-x86_64-boot.iso`, pulling packages from the Rocky mirrors; see [[Build-Sequence]] Stage 6.
+	Joined Ansible by the Stage 3.4 procedure: DNS record published first with `--limit dns_servers --tags dns`, then bootstrapped and converged by name.
+	`open-vm-tools` 13.0.10 is installed, which esxi01's guest shutdown depends on. Second in esxi01's startup order, first to stop.
+	Not a clone of any other VM. The pre-rebuild managed01 was a clone of ansible01 and inherited its machine-id and a broken package source.
 
 ---
+
 ## Related
 
 - [[esxi01]]
 - [[ansible01]]
-- [[VM Network]]
-- [[chrony]]
+- [[infra01]]
+- [[datastore01-01]]
+- [[Build-Sequence]]

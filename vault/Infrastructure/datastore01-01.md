@@ -16,7 +16,7 @@ VMFS 6
 
 ## Free Space
 
-Record after Stage 5.
+Thin provisioning; check in the vSphere Client.
 
 ___
 

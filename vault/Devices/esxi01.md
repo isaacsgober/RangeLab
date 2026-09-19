@@ -98,7 +98,7 @@ local VMFS datastore only above roughly 142 GB.
 ## Hosted Virtual Machines
 
 - [[vcenter01]]
-- [[managed01]] *(Stage 6)*
+- [[managed01]]
 
 ---
 
@@ -109,6 +109,7 @@ local VMFS datastore only above roughly 142 GB.
 	NTP: `ntpd` synced to `infra01.rangelab.internal` (`ntpq -p` shows `*`), set with `esxcli system ntp set --server=infra01.rangelab.internal --enabled=true`. ESXi's `ntpd` runs with `-g`: one large correction at startup, then corrections over 1000 s are refused. See [[chrony]] and [[NTP Hierarchy]].
 	Certificate: VMCA-issued on the add to vCenter by FQDN, replacing the installer's self-signed `localhost.localdomain` certificate with no manual regeneration. Subject and SAN `esxi01.rangelab.internal`, valid to 2031-09-17.
 	Evaluation license expires 2026-12-16 (89 days remaining on 2026-09-18).
+	Managed by [[vcenter01]] in datacenter `rangelab`, added by FQDN. Autostart: vcenter01 first, then managed01; guest shutdown in reverse, with 600 s for vcenter01. See [[Build-Sequence]] Stage 6.
 
 ---
 

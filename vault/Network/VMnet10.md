@@ -31,14 +31,13 @@ Host Adapter: 10.10.10.1 - an address on this network, not a gateway
 
 ## Members
 
-*Rebuild in progress. The remaining nodes join as they are built.*
-
 - [[Precision7730]] (host adapter)
 - [[vyos01]]
 - [[infra01]]
 - [[ansible01]]
 - [[esxi01]]
 - [[vcenter01]] (through esxi01)
+- [[managed01]] (through esxi01)
 
 ---
 

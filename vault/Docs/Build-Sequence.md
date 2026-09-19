@@ -589,3 +589,89 @@ DC=local`). Then sign in to the vSphere Client at `https://vcenter01.rangelab.in
 **Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
 `CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
 Evaluation license expires 2026-12-17.
+
+---
+
+# Stage 6 - vSphere configuration and managed01
+
+Brings esxi01 under vCenter, sets the host's startup order, and builds managed01, the Rocky node
+nested inside esxi01.
+
+## 6.1 Datacenter and host
+
+In the vSphere Client at `https://vcenter01.rangelab.internal/ui`:
+
+1. **New Datacenter**: `rangelab`.
+2. **Add Host**: `esxi01.rangelab.internal`, by FQDN, with the root credentials. Accept the
+   certificate thumbprint, keep the evaluation license, and leave lockdown mode disabled.
+
+vCenter replaces esxi01's installer certificate with a VMCA-signed one carrying the FQDN. Adding
+by IP would put an IP-only SAN in that certificate.
+
+## 6.2 Startup and shutdown order
+
+esxi01 → Configure → **VM Startup/Shutdown** → Edit:
+
+| Setting | Value |
+| ------- | ----- |
+| Automatically start and stop the virtual machines with the system | Checked |
+| Default startup delay / shutdown delay | 120 s / 120 s |
+| Continue if VMware Tools is started | Checked |
+| Shutdown action | Guest shutdown |
+
+| Order | VM | Startup | VMware Tools | Shutdown delay |
+| ----- | -- | ------- | ------------ | -------------- |
+| 1 | vcenter01 | Enabled | System default | 600 s |
+| 2 | managed01 | Enabled | System default | 120 s |
+
+vcenter01 starts first because it takes longest to become usable; DNS and time are already up
+outside esxi01. It gets 600 seconds to shut down, since a guest cut off mid-shutdown is powered off,
+and hard-stopping the appliance's database can corrupt vCenter. Guest shutdown requires VMware
+Tools in each guest.
+
+## 6.3 Create managed01
+
+New Virtual Machine on esxi01:
+
+| Setting | Value |
+| ------- | ----- |
+| Name | `managed01` |
+| Storage | `datastore01-01`, thin; Storage DRS setting irrelevant with a single datastore |
+| Guest OS | Linux → Red Hat Enterprise Linux 10 (64-bit) |
+| CPU / memory | 2 vCPU / 2 GB |
+| Disk | 30 GB, PVSCSI |
+| Network | VM Network, `vmxnet3` |
+| Firmware | EFI (the profile's default) |
+| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, uploaded to `datastore01-01` |
+
+The boot ISO holds only the installer and pulls packages from the Rocky mirrors, which works for
+any node built after Stage 3: a 1 GB upload instead of the 10 GB DVD.
+
+Install with the Stage 2.2 settings, except:
+
+- **Network first.** Address `10.10.10.21`, hostname `managed01.rangelab.internal`, DNS
+  `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from the
+  start.
+- **Installation Source**: closest mirror, no proxy.
+
+Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.2 depends on.
+
+## 6.4 Bring managed01 under Ansible
+
+Add it as a node per 3.4. Its inventory entry already exists in `main`.
+
+## 6.5 Checks
+
+```
+echo | openssl s_client -connect esxi01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+ansible managed01.rangelab.internal -m command -a 'chronyc sources'
+ansible managed01.rangelab.internal -m command -a 'rpm -q open-vm-tools'
+ansible all -m ping
+```
+
+Expected: esxi01's certificate issued by the VMCA root with `DNS:esxi01.rangelab.internal`;
+managed01 `^*` on infra01; `open-vm-tools` installed; `pong` from all three managed nodes.
+
+**Verified 2026-09-18:** esxi01 certificate VMCA-issued with the FQDN SAN; managed01 on Rocky 10.2,
+EFI, `vmxnet3`, synchronised to infra01 at stratum 3, resolving through `10.10.10.2`,
+`open-vm-tools` 13.0.10; all three nodes converged to `changed=0`.
