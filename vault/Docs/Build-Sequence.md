@@ -574,15 +574,15 @@ Directory domain and cannot be renamed later.
 
 ## 5.4 Checks
 
-From the Windows host, without credentials:
+From ansible01:
 
 ```
-echo | openssl s_client -connect 10.10.10.15:443 -servername vcenter01.rangelab.internal 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+echo | openssl s_client -connect vcenter01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
 ```
 
-Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root (`DC=vsphere,
-DC=local`). Then sign in to the vSphere Client at `https://vcenter01.rangelab.internal/ui` as
-`administrator@vsphere.local`.
+Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root
+(`DC=vsphere, DC=local`). Then, from the Windows host, sign in to the vSphere Client at
+`https://vcenter01.rangelab.internal/ui` as `administrator@vsphere.local`.
 
 **Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
 `CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
