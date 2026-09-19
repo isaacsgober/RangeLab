@@ -584,10 +584,6 @@ Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root
 (`DC=vsphere, DC=local`). Then, from the Windows host, sign in to the vSphere Client at
 `https://vcenter01.rangelab.internal/ui` as `administrator@vsphere.local`.
 
-**Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
-`CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
-Evaluation license expires 2026-12-17.
-
 ---
 
 # Stage 6 - vSphere configuration and managed01
