@@ -1,53 +1,76 @@
-# Recovery Procedure - DNS Unavailable
+# Recovery - DNS Unavailable
 
-> **Pre-rebuild content.** Describes the lab as built before 2026-09-16, including the
-> `rangelab.local` domain. Rewritten when Stage 7 of [[Build-Sequence]] rebuilds it.
+What to do when [[infra01]]'s DNS stops answering. Hosts are referenced by name (ADR-0008), so a
+DNS failure also stops name-based Ansible runs, chrony clients' access to their time source, and
+vCenter's name checks.
 
-
-_What to do if the dnsmasq DNS server (dnsmasqhost) goes down or is unreachable._
+---
 
 ## Symptoms
 
-- vCenter VAMI errors
-- unable to stand up new installs of vCenter
-- unable to reach host web interfaces via FQDN URLs
+- Lab names fail to resolve; `dig vcenter01.rangelab.internal` times out or returns SERVFAIL.
+- Ansible reports hosts unreachable by name.
+- `chronyc sources` on clients shows `^?` for infra01.
+- vCenter reports errors in VAMI or the vSphere Client.
+
+If lab names resolve but external names do not, the fault is upstream at [[vyos01]]'s forwarder,
+not infra01; see [[Troubleshooting]] (2026-09-17).
+
+---
 
 ## Immediate workaround
-Access hosts by IP address rather than hostname (see [[IP Index]]). This allows administrative access, but does not restore vCenter operation; 
-DNS must be functional for vCenter to properly operate; the only solution is to make DNS available again.
-## Root cause checklist
 
-- [ ] Is the dnsmasqhost VM powered on?
-- [ ] Is the dnsmasq service running? (`systemctl status dnsmasq`)
-- [ ] Is the network path (VMnet10) intact?
-- [ ] Any recent config changes to `/etc/dnsmasq.conf`?
+Reach hosts by address ([[IP Index]]). For Ansible, supply each host's address for the run:
 
-## Fix and verify
+```
+ansible-playbook site.yml -e 'ansible_host={{ lab_address }}'
+```
 
-1. **Confirm reachability.** From another host: `ping 10.10.10.2`
-    - No reply:
-	    - the VM is down or the network path is broken. Check power state in Workstation and confirm VMnet10 is intact. Access the console directly if SSH is unavailable.
-    - Reply:
-	    - the host is up; continue.
-2. **Check the service.** On dnsmasqhost: `systemctl status dnsmasq`
-    - Running:
-	    - skip to step 4.
-    - Failed or stopped: 
-	    - continue.
-3. **Diagnose the failure.** Read the error in the status output or `journalctl -u dnsmasq`.
-    - `unknown interface <name>` :
-	    - the interface wasn't up when dnsmasq started. Confirm with `ip addr show ens160`. See Troubleshooting 2026-09-05.
-    - Config errors :
-	    - check and make necessary updates to `/etc/dnsmasq.conf` via 
-	     `sudo nano /etc/dnsmasq.conf` (or `vi`)
-    
-4. **Restart dnsmasq:** `sudo systemctl restart dnsmasq`
-5. **Verify resolution.** 
-	From another host:
-	```cmd
-		nslookup vcenter01.rangelab.local 10.10.10.2
-		nslookup 10.10.10.15 10.10.10.2
-	```
-	Both must succeed - vCenter depends on forward _and_ reverse.
-	
-6. **Check vCenter.** VAMI at `https://10.10.10.15:5480` and the vSphere Client at `https://10.10.10.15`. Services may recover unaided; allow several minutes before restarting anything.
+---
+
+## Diagnose
+
+1. **Is infra01 up?** `ping 10.10.10.2`. No reply: check its power state in Workstation and use
+   the console.
+2. **Is dnsmasq running?** On infra01: `systemctl status dnsmasq`. If failed, read
+   `journalctl -u dnsmasq` for the reason.
+3. **Is the configuration valid?** On infra01: `dnsmasq --test`.
+4. **Is it answering?** From another node: `dig @10.10.10.2 infra01.rangelab.internal`.
+
+---
+
+## Fix
+
+Reconverge the DNS role by address, which restores the configuration from the repository and
+restarts dnsmasq if it changes:
+
+```
+ansible-playbook site.yml --limit dns_servers --tags dns -e 'ansible_host={{ lab_address }}'
+```
+
+If the configuration was already correct and dnsmasq is simply stopped:
+`sudo systemctl restart dnsmasq` on infra01.
+
+---
+
+## Verify
+
+```
+dig +short vcenter01.rangelab.internal
+dig -x 10.10.10.15 +short
+dig vcenter01.rangelab.internal AAAA
+ansible all -m ping
+```
+
+Expected: `10.10.10.15`; `vcenter01.rangelab.internal.`; `NOERROR` with an empty answer; `pong`
+from every node. vCenter depends on forward and reverse lookups; its services may take several
+minutes to recover without intervention.
+
+---
+
+## Related
+
+- [[infra01]]
+- [[dnsmasq]]
+- [[Operations]]
+- [[Troubleshooting]]
