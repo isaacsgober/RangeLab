@@ -10,6 +10,8 @@ covers the repository and the editing loop around it.
 - One branch per stage group, merged to `main` by pull request once that stage's checks pass:
   `rebuild/plan`, `rebuild/network`, `rebuild/ansible`, `rebuild/vsphere`, `rebuild/verify`.
 - Branch created before the stage starts, not after.
+- Small documentation fixes that change no procedure, configuration, or decision may be
+  committed directly to `main`.
 - Commit messages are one line, imperative, no body, no attribution trailers.
 - Merged branches are deleted locally and on the remote. The pull requests and the merge commits
   in `git log --graph` are the record; stale branch refs are not.
