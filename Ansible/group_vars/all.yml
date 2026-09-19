@@ -3,6 +3,7 @@ base_utils:
   - bash-completion
   - bind-utils
   - git
+  - openssl
   - tmux
   - tree
   - vim-enhanced
