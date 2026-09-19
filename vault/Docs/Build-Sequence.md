@@ -725,7 +725,3 @@ python Scripts\vcenter_inventory.py
 Expected: every host reachable, with esxi01 checked on 443 since its SSH does not survive a reboot;
 `changed=0` on every managed node; every chrony node `^*` on its source; `Time Synchronized: true`
 on esxi01; vcenter01 and managed01 listed as `POWERED_ON`.
-
-**Verified 2026-09-18:** all checks pass with no manual intervention. Names resolved at boot, so
-dnsmasq came up under `bind-dynamic`; clocks were corrected after the time powered off; autostart
-brought up both nested VMs; the vCenter API answered.
