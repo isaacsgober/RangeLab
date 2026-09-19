@@ -280,7 +280,7 @@ Installation Source reaches the mirrors only once the network is up.
 | … → General                     | "Connect automatically with priority" checked                                       |
 | Installation Source             | Closest mirror, no proxy                                                            |
 | Root Account                    | **Lock root account**                                                               |
-| User Creation                   | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
+| User Creation                   | `labadmin`, "Make this user administrator" checked                                  |
 
 Begin installation, then reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect
 at power on**.
@@ -467,8 +467,8 @@ rtc.diffFromUTC = "0"
 
 ## 4.2 Install
 
-Boot from the ISO, install to the 128 GB disk, set the root password (recorded in `creds.md`), and
-reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect at power on**.
+Boot from the ISO, install to the 128 GB disk, set the root password, and reboot.
+In VM Settings → CD/DVD, clear both **Connected** and **Connect at power on**.
 
 The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
 and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
@@ -559,8 +559,6 @@ Run `vcsa-ui-installer\win32\installer.exe` from the VCSA 9.1 ISO on the Windows
 | IP | `10.10.10.15/24`, gateway `10.10.10.3` |
 | DNS server | `10.10.10.2` |
 
-Root password recorded in `creds.md`.
-
 ## 5.3 Configure the appliance (installer stage 2)
 
 | Setting | Value |
@@ -568,7 +566,7 @@ Root password recorded in `creds.md`.
 | Time synchronization | NTP, `infra01.rangelab.internal` |
 | SSH | Enabled |
 | SSO domain | `vsphere.local` |
-| Administrator | `administrator@vsphere.local`, password in `creds.md` |
+| Administrator | `administrator@vsphere.local` |
 | CEIP | On |
 
 `vsphere.local` is vCenter's internal directory name, not a DNS name. It must never match an Active

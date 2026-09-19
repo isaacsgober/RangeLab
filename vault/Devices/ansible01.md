@@ -115,7 +115,7 @@ Updates come from pip, not `dnf update`:
 ## Notes
 
 2026-09-17:
-	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator, password in `creds.md`.
+	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator.
 	Playbooks are invoked as `labadmin`, which owns the working copy at `~labadmin/RangeLab`, the control-side Ed25519 key at `~labadmin/.ssh/id_ed25519`, and the installed collections. `ansible` is the account Ansible logs in to on managed nodes, created there by `bootstrap.yml`; see ADR-0002 (revised 2026-09-17) and [[Development-Workflow]].
 	The control-side key has no passphrase so playbooks run unattended. It stays on this host and is excluded from the repo. Stage 3's bootstrap play installs the public key on every node.
 	This is the canonical working copy of the repository; the copy on the Windows host is for reading and documentation. Only one holds uncommitted changes at a time.

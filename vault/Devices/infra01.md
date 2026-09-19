@@ -98,7 +98,7 @@ inventory; see [[Build-Sequence]] Stage 3.
 ## Notes
 
 2026-09-17:
-	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator, password in `creds.md`.
+	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator.
 	`rtc.diffFromUTC = "0"` in the `.vmx`, and the installer's time zone set to UTC.
 	The DVD is installation media only. This node uses the normal Rocky repositories over the internet through [[vyos01]], which is what ADR-0003's local ISO repository existed to work around.
 	Firmware is BIOS: Workstation offers no UEFI for this guest profile. Rocky's automatic partitioning therefore creates a `biosboot` partition rather than an EFI system partition, so there is no `/boot/efi`.

@@ -58,8 +58,6 @@ Every host reachable and `changed=0` means the lab matches the repository.
 | SSH to esxi01 | Enable in the DCUI (Troubleshooting Options) or the vSphere Client; off after every reboot |
 | Check evaluation expiry | ESXi 2026-12-16, vCenter 2026-12-17; see [[Known-Issues]] |
 
-Credentials are in `creds.md`, outside the repository.
-
 ---
 
 ## Related

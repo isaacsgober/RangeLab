@@ -134,10 +134,9 @@ proxve01. Every disk is thin-provisioned. Addresses follow ADR-0001.
   Windows host is no longer part of lab time; this supersedes ADR-0004's upstream.
 - **Packages.** The Rocky DVD is used only as installation media. Afterward nodes use the normal
   Rocky repositories and receive updates. This supersedes ADR-0003.
-- **Accounts.** The Rocky installer creates `labadmin` (wheel, password recorded in `creds.md`) and
-  locks root. `bootstrap.yml`, run once per node with `-k -K`, creates the `ansible` service account
-  with ansible01's public key and the NOPASSWD sudoers file (ADR-0002). `site.yml` does everything
-  else.
+- **Accounts.** The Rocky installer creates `labadmin` (wheel) and locks root. `bootstrap.yml`, run
+  once per node with `-k -K`, creates the `ansible` service account with ansible01's public key and
+  the NOPASSWD sudoers file (ADR-0002). `site.yml` does everything else.
 - **Code on ansible01.** `git clone` from GitHub as `ansible`; `git pull` to update.
 - **ESXi and vCenter.** Configured by hand in the DCUI, Host Client, and vSphere Client, every step
   written down with exact values.
@@ -226,7 +225,7 @@ Each stage ends with its checks passing before the next begins. Expected output 
 | Internet access | vyos01 minimal gateway now; firewall policy later |
 | ESXi and vCenter | Manual, fully documented |
 | Rocky installs | Interactive installer + `bootstrap.yml` |
-| `labadmin` password | Set at install, recorded in `creds.md` |
+| `labadmin` password | Set at install |
 | Authorship | Build work is done by hand; documentation is drafted for review before it lands |
 | Git | Same repo, `pre-rebuild` tag, stage branches + PRs |
 | vCenter size | `small` |
