@@ -311,10 +311,14 @@ sudo /opt/ansible/bin/pip install ansible-core ansible-lint yamllint
 echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
 ssh-keygen -t ed25519 -N '' -C 'labadmin@ansible01' -f ~/.ssh/id_ed25519
 git clone https://github.com/isaacsgober/RangeLab.git ~/RangeLab
-ansible-galaxy collection install ansible.posix
 ```
 
-Log out and back in so the `PATH` change applies.
+Log out and back in so the `PATH` change applies, then install the collection the playbooks use for
+SSH keys and firewalld:
+
+```
+ansible-galaxy collection install ansible.posix
+```
 
 - Ansible comes from pip rather than Rocky's 2.16 package, in one environment with ansible-lint so
   both use the same core. `dnf update` does not update it.
