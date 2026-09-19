@@ -11,7 +11,7 @@ hypervisor's guests does not live inside the hypervisor.
 
 ## Status
 
-**Running**; rebuilt 2026-09-17
+**Running**; rebuilt 2026-09-19
 
 ---
 
@@ -61,7 +61,7 @@ Gateway `10.10.10.3` ([[vyos01]]); DNS `10.10.10.2` ([[infra01]]).
 
 ## Management
 
-SSH: `labadmin@10.10.10.20`
+SSH: `labadmin@ansible01.rangelab.internal`
 
 ---
 
@@ -93,10 +93,10 @@ SSH: `labadmin@10.10.10.20`
 | --------- | ------- | ------ |
 | ansible-core | 2.21.4 | pip, in `/opt/ansible` |
 | ansible-lint | 26.8.0 | pip, same environment |
-| yamllint |; | pip, same environment |
+| yamllint | 1.38.0 | pip, same environment |
 | ansible.posix | 2.2.2 | `ansible-galaxy`, in `~labadmin/.ansible/collections` |
-| Python | 3.12.13 | system |
-| git |; | `dnf` |
+| Python | 3.12.14 | system |
+| git | 2.52.0 | `dnf` |
 
 Ansible lives in one virtual environment at `/opt/ansible`, holding ansible-core and the linters
 together so the linter and the runtime are the same version by construction. Rocky's own
@@ -114,8 +114,9 @@ Updates come from pip, not `dnf update`:
 
 ## Notes
 
-2026-09-17:
-	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator.
+2026-09-19:
+	Installed from the Rocky 10.2 boot ISO with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator.
+	Rebuilt by following [[Build-Sequence]] from `main`; the first instance, installed 2026-09-17 from the DVD, was deleted.
 	Playbooks are invoked as `labadmin`, which owns the working copy at `~labadmin/RangeLab`, the control-side Ed25519 key at `~labadmin/.ssh/id_ed25519`, and the installed collections. `ansible` is the account Ansible logs in to on managed nodes, created there by `bootstrap.yml`; see ADR-0002 (revised 2026-09-17) and [[Development-Workflow]].
 	The control-side key has no passphrase so playbooks run unattended. It stays on this host and is excluded from the repo. Stage 3's bootstrap play installs the public key on every node.
 	This is the canonical working copy of the repository; the copy on the Windows host is for reading and documentation. Only one holds uncommitted changes at a time.
