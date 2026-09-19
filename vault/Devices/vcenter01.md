@@ -63,7 +63,7 @@ vSphere Client: `https://vcenter01.rangelab.internal/ui`
 VAMI: `https://vcenter01.rangelab.internal:5480`
 SSH: enabled; root lands in `appliancesh`, and `shell` switches to bash
 
-SSO domain `vsphere.local`; administrator `administrator@vsphere.local`. Credentials in `creds.md`.
+SSO domain `vsphere.local`; administrator `administrator@vsphere.local`.
 
 ---
 

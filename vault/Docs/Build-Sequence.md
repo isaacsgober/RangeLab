@@ -17,24 +17,29 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 
 ## Prerequisites
 
-| Item | Value |
-| ---- | ----- |
-| Host | Windows 11 with VMware Workstation 26 |
-| Networks | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
-| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 DVD, VMware ESXi 9.1, VCSA 9.1 |
-| Repository | This repo, cloned on the host |
-| Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
-| Host DNS | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on |
+| Item             | Value                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host             | Windows 11 with VMware Workstation 26                                                                                                                 |
+| Networks         | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
+| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 boot ISO, VMware ESXi 9.1, VCSA 9.1                                                                             |
+| Repository       | This repo, cloned on the host                                                                                                                         |
+| Firmware         | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it                                                                        |
+| Host DNS         | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on                                                 |
+| Host tools       | Python 3.10+ and `requests` (`pip install requests`), for Stage 7's `vcenter_inventory.py`                                                            |
 
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
 
-When rebuilding over an earlier lab, clear the host's stale SSH host keys for every reused address
-first, or SSH refuses the new machines with "REMOTE HOST IDENTIFICATION HAS CHANGED":
+Rebuilding over an earlier lab on the same host leaves its SSH host keys behind, and SSH refuses
+the new nodes with "REMOTE HOST IDENTIFICATION HAS CHANGED". Clear them in PowerShell:
 
 ```
-ssh-keygen -R <address>
+Get-Content "$env:USERPROFILE\.ssh\known_hosts" | ForEach-Object { ($_ -split ' ')[0] } | Sort-Object -Unique | Where-Object { $_ -match '^10\.10\.10\.|\.rangelab\.' } | ForEach-Object { ssh-keygen -R $_ }
 ```
+
+The pattern matches the earlier lab's network, `^10\.10\.10\.` (its address without the host
+octet), and a unique part of its domain, `\.rangelab\.`. Replace either if that lab used different
+values; dots are escaped with `\`.
 
 ---
 
@@ -95,8 +100,7 @@ for the `vyos` user, and the default boot console. When it finishes:
 poweroff
 ```
 
-In VM Settings → CD/DVD, clear **Connect at power on** and disconnect the ISO, then power the VM
-back on.
+In VM Settings → CD/DVD, clear **Connect at power on**, then power the VM back on.
 
 ## 1.3 Check which interface is which
 
@@ -188,6 +192,12 @@ save
 The saved configuration will contain more than the commands above: NTP, syslog, console,
 offload, `hw-id`, `commit-revisions`. Those are VyOS defaults, not lab decisions.
 
+Leave configuration mode before the checks:
+
+```
+exit
+```
+
 ## 1.5 Checks
 
 ```
@@ -205,8 +215,6 @@ three pings succeed; one NAT rule listed; and the `dig` returns `status: NOERROR
 milliseconds.
 
 The `dig` tests the forwarder clients use; the pings only prove the router resolves for itself.
-
-**Verified 2026-09-17:** all checks pass; `dig @10.10.10.3` returns NOERROR in 32 ms.
 
 From the Windows host, confirm management access:
 
@@ -227,7 +235,8 @@ hash.
 
 # Stage 2 - infra01 and ansible01
 
-Two Rocky Linux VMs, installed from the DVD. infra01 will serve DNS and NTP to the lab; ansible01
+Two Rocky Linux VMs, installed from the boot ISO, which pulls packages from the Rocky mirrors
+through vyos01. infra01 will serve DNS and NTP to the lab; ansible01
 is the control node that configures everything from here on. Neither is configured by hand beyond
 what the installer asks: Stage 3 does the rest with Ansible.
 
@@ -245,7 +254,7 @@ Install infra01 first, then ansible01. Both are Workstation guests, so neither d
 | Memory | 2048 MB | 4096 MB |
 | Disk | 20 GB, single file | 30 GB, single file |
 | Network adapter | Custom → **VMnet10** | Custom → **VMnet10** |
-| CD/DVD | `Rocky-10.2-x86_64-dvd1.iso`, connected at power on | same |
+| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, connected at power on | same |
 
 With each VM powered off, add to its `.vmx`:
 
@@ -255,24 +264,27 @@ rtc.diffFromUTC = "0"
 
 ## 2.2 Rocky installer settings
 
-Identical for both machines except the highlighted rows.
+Identical for both machines except the highlighted rows. Configure Network & Host Name first;
+Installation Source reaches the mirrors only once the network is up.
 
 | Installer screen                | Setting                                                                             |
 | ------------------------------- | ----------------------------------------------------------------------------------- |
 | Language / Keyboard             | English (US)                                                                        |
 | Time & Date                     | Region/City: **Etc / Coordinated Universal Time**                                   |
-| Software Selection              | **Minimal Install**                                                                 |
-| Installation Destination        | The virtual disk, automatic partitioning                                            |
 | Network & Host Name → Host Name | **`infra01.rangelab.internal`** / **`ansible01.rangelab.internal`**                 |
 | … → Configure → IPv4 Settings   | Method **Manual**                                                                   |
 | … → Address                     | **`10.10.10.2`** / **`10.10.10.20`**, netmask `255.255.255.0`, gateway `10.10.10.3` |
 | … → DNS servers                 | `10.10.10.3`                                                                        |
 | … → Search domains              | `rangelab.internal`                                                                 |
 | … → General                     | "Connect automatically with priority" checked                                       |
+| Installation Destination        | The virtual disk, automatic partitioning                                            |
+| Installation Source             | Closest mirror, no proxy                                                            |
+| User Creation                   | `labadmin`, "Make this user administrator" checked                                  |
 | Root Account                    | **Lock root account**                                                               |
-| User Creation                   | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
+| Software Selection              | **Minimal Install**                                                                 |
 
-Begin installation, then reboot and disconnect the ISO.
+Begin installation, then reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect
+at power on**.
 
 DNS points at vyos01 until Stage 3 moves every node to infra01.
 
@@ -304,10 +316,14 @@ sudo /opt/ansible/bin/pip install ansible-core ansible-lint yamllint
 echo 'export PATH=/opt/ansible/bin:$PATH' | sudo tee /etc/profile.d/ansible.sh
 ssh-keygen -t ed25519 -N '' -C 'labadmin@ansible01' -f ~/.ssh/id_ed25519
 git clone https://github.com/isaacsgober/RangeLab.git ~/RangeLab
-ansible-galaxy collection install ansible.posix
 ```
 
-Log out and back in so the `PATH` change applies.
+Log out and back in so the `PATH` change applies, then install the collection the playbooks use for
+SSH keys and firewalld:
+
+```
+ansible-galaxy collection install ansible.posix
+```
 
 - Ansible comes from pip rather than Rocky's 2.16 package, in one environment with ansible-lint so
   both use the same core. `dnf update` does not update it.
@@ -327,9 +343,6 @@ ansible-galaxy collection list | grep posix
 Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from `ansible` and
 `ansible-lint`**; `ansible.posix` listed.
 
-**Verified 2026-09-17:** ansible-core 2.21.4, ansible-lint 26.8.0 on the same core,
-ansible.posix 2.2.2.
-
 ---
 
 # Stage 3 - Ansible: bootstrap and converge
@@ -341,6 +354,10 @@ the repository; their layout is in `Ansible/README.md`.
 The inventory names every node by FQDN and keeps its address in `lab_address` (ADR-0008).
 `dns_extra_records` lists the nodes Ansible does not manage, so their records exist from the first
 converge, before those nodes are built.
+
+The inventory also lists managed01, which Stage 6 builds. Until then, every Ansible run reports it
+`UNREACHABLE` with "No route to host". Ansible drops an unreachable host from the run and carries on
+with the others, so this result is expected.
 
 ## 3.1 Bootstrap
 
@@ -355,7 +372,7 @@ ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_add
 
 Creates the `ansible` service account, authorises ansible01's key, and installs the sudoers
 drop-in (ADR-0002). Use `-e`, not `-u`: command-line options lose to inventory variables, extra
-vars win. Expect `changed=3` per node.
+vars win. Expect `changed=3` on infra01 and ansible01.
 
 ## 3.2 First converge
 
@@ -391,21 +408,16 @@ ansible all -m command -a 'dig +short rockylinux.org'
 ansible all -m command -a 'dig infra01.rangelab.internal AAAA'
 ```
 
-Expected: `pong` from both nodes; the second run reports `changed=0` with no handlers; every node
-`^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record, and external
-names resolving; the AAAA query returning `NOERROR` with an empty answer, not `NXDOMAIN`.
-
-**Verified 2026-09-18:** both nodes at `changed=0`; infra01 at stratum 3, ansible01 at 4; all names
-resolving; AAAA returning NODATA.
-
-`getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
-`nss-myhostname`, not DNS; see [[Troubleshooting]] (2026-09-18).
+Expected: `pong` from infra01 and ansible01; the second run reports `changed=0` with no handlers;
+every node `^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record,
+and external names resolving; the AAAA query returning `NOERROR` with an empty answer, not
+`NXDOMAIN`.
 
 ## 3.4 Adding a node
 
 For a Rocky node installed after this stage, such as managed01 in Stage 6. A node new to the lab
-first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a rebuild from
-`main` already has one.
+first needs an entry under `all.hosts` in the inventory, with its `lab_address`; a node already in
+`main`'s inventory, such as managed01, has one.
 
 Publish the node's DNS record, then bootstrap and converge it by name:
 
@@ -456,8 +468,8 @@ rtc.diffFromUTC = "0"
 
 ## 4.2 Install
 
-Boot from the ISO, install to the 128 GB disk, set the root password (recorded in `creds.md`), and
-reboot. Clear **Connect at power on** for the CD/DVD afterwards.
+Boot from the ISO, install to the 128 GB disk, set the root password, and reboot.
+In VM Settings → CD/DVD, clear both **Connected** and **Connect at power on**.
 
 The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
 and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
@@ -498,17 +510,7 @@ esxcli system ntp get
 In the Host Client (`https://esxi01.rangelab.internal`): **Storage → New datastore**, VMFS 6, on the
 400 GB disk, named `datastore01-01` ([[Naming Convention]]: first datastore on host 01).
 
-## 4.5 Certificate
-
-The installer's self-signed certificate names `localhost.localdomain`. Leave it: when vCenter adds
-the host in Stage 6, it accepts the certificate by thumbprint and replaces it with a VMCA-signed one
-carrying the name used for the add. Add **by FQDN**; adding by IP puts an IP-only SAN in the
-replacement.
-
-**Verified 2026-09-18:** after the add, `rui.crt` shows `DNS:esxi01.rangelab.internal`, issued by
-the VMCA root. No manual regeneration needed.
-
-## 4.6 Checks
+## 4.5 Checks
 
 ```
 esxcli network ip interface ipv4 get
@@ -521,10 +523,6 @@ esxcli storage filesystem list
 Expected: `vmk0` at `10.10.10.10/24`; DNS server `10.10.10.2`; NTP enabled with
 `infra01.rangelab.internal`; `ntpq -p` showing `*` against infra01 after a few minutes;
 `datastore01-01` mounted, about 400 GB, VMFS 6, and no datastore on the boot disk.
-
-**Verified 2026-09-18:** DCUI Test Management Network passed all four checks (gateway, DNS server,
-`1.1.1.1`, own-name resolution); `ntpq -p` showing `*` on infra01; `datastore01-01` created on the
-400 GB disk. Evaluation license expires 2026-12-16.
 
 ---
 
@@ -562,8 +560,6 @@ Run `vcsa-ui-installer\win32\installer.exe` from the VCSA 9.1 ISO on the Windows
 | IP | `10.10.10.15/24`, gateway `10.10.10.3` |
 | DNS server | `10.10.10.2` |
 
-Root password recorded in `creds.md`.
-
 ## 5.3 Configure the appliance (installer stage 2)
 
 | Setting | Value |
@@ -571,7 +567,7 @@ Root password recorded in `creds.md`.
 | Time synchronization | NTP, `infra01.rangelab.internal` |
 | SSH | Enabled |
 | SSO domain | `vsphere.local` |
-| Administrator | `administrator@vsphere.local`, password in `creds.md` |
+| Administrator | `administrator@vsphere.local` |
 | CEIP | On |
 
 `vsphere.local` is vCenter's internal directory name, not a DNS name. It must never match an Active
@@ -579,26 +575,22 @@ Directory domain and cannot be renamed later.
 
 ## 5.4 Checks
 
-From the Windows host, without credentials:
+From ansible01:
 
 ```
-echo | openssl s_client -connect 10.10.10.15:443 -servername vcenter01.rangelab.internal 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
+echo | openssl s_client -connect vcenter01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
 ```
 
-Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root (`DC=vsphere,
-DC=local`). Then sign in to the vSphere Client at `https://vcenter01.rangelab.internal/ui` as
-`administrator@vsphere.local`.
-
-**Verified 2026-09-18:** vCenter Server 9.1.0.0200, build 25573614; machine certificate
-`CN=vcenter01.rangelab.internal` with matching SAN, issued by VMCA, valid to 2028-09-18.
-Evaluation license expires 2026-12-17.
+Expected: subject and SAN `vcenter01.rangelab.internal`, issued by the VMCA root
+(`DC=vsphere, DC=local`). Then, from the Windows host, sign in to the vSphere Client at
+`https://vcenter01.rangelab.internal/ui` as `administrator@vsphere.local`.
 
 ---
 
 # Stage 6 - vSphere configuration and managed01
 
-Brings esxi01 under vCenter, sets the host's startup order, and builds managed01, the Rocky node
-nested inside esxi01.
+Brings esxi01 under vCenter, builds managed01, the Rocky node nested inside esxi01, then sets the
+host's startup order once both of its VMs exist.
 
 ## 6.1 Datacenter and host
 
@@ -606,35 +598,22 @@ In the vSphere Client at `https://vcenter01.rangelab.internal/ui`:
 
 1. **New Datacenter**: `rangelab`.
 2. **Add Host**: `esxi01.rangelab.internal`, by FQDN, with the root credentials. Accept the
-   certificate thumbprint, keep the evaluation license, and leave lockdown mode disabled.
+   certificate thumbprint. At **Host lifecycle**, choose **Extract the image on the host**. Keep
+   the evaluation license, and leave lockdown mode disabled.
 
 vCenter replaces esxi01's installer certificate with a VMCA-signed one carrying the FQDN. Adding
 by IP would put an IP-only SAN in that certificate.
 
-## 6.2 Startup and shutdown order
+Extracting adopts the ESXi image already installed on esxi01 as the host's desired image. The other
+options build an image from a software depot, and none is configured in this lab.
 
-esxi01 → Configure → **VM Startup/Shutdown** → Edit:
+## 6.2 Create managed01
 
-| Setting | Value |
-| ------- | ----- |
-| Automatically start and stop the virtual machines with the system | Checked |
-| Default startup delay / shutdown delay | 120 s / 120 s |
-| Continue if VMware Tools is started | Checked |
-| Shutdown action | Guest shutdown |
+Upload the boot ISO first; the New Virtual Machine wizard can only attach an ISO that is already on
+a datastore. In the vSphere Client: **Storage** → `datastore01-01` → **Files** → **Upload Files**,
+then choose `Rocky-10.2-x86_64-boot.iso`.
 
-| Order | VM | Startup | VMware Tools | Shutdown delay |
-| ----- | -- | ------- | ------------ | -------------- |
-| 1 | vcenter01 | Enabled | System default | 600 s |
-| 2 | managed01 | Enabled | System default | 120 s |
-
-vcenter01 starts first because it takes longest to become usable; DNS and time are already up
-outside esxi01. It gets 600 seconds to shut down, since a guest cut off mid-shutdown is powered off,
-and hard-stopping the appliance's database can corrupt vCenter. Guest shutdown requires VMware
-Tools in each guest.
-
-## 6.3 Create managed01
-
-New Virtual Machine on esxi01:
+Then, New Virtual Machine on esxi01:
 
 | Setting | Value |
 | ------- | ----- |
@@ -645,25 +624,59 @@ New Virtual Machine on esxi01:
 | Disk | 30 GB, PVSCSI |
 | Network | VM Network, `vmxnet3` |
 | Firmware | EFI (the profile's default) |
-| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, uploaded to `datastore01-01` |
+| CD/DVD | Datastore ISO File, `Rocky-10.2-x86_64-boot.iso` on `datastore01-01`; **Connect At Power On** checked |
 
-The boot ISO holds only the installer and pulls packages from the Rocky mirrors, which works for
-any node built after Stage 3: a 1 GB upload instead of the 10 GB DVD.
+Power on managed01 and open **Launch Web Console**; it runs in the browser, while **Launch Remote
+Console** needs VMware Remote Console installed on the host.
 
 Install with the Stage 2.2 settings, except:
 
-- **Network first.** Address `10.10.10.21`, hostname `managed01.rangelab.internal`, DNS
-  `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from the
-  start.
-- **Installation Source**: closest mirror, no proxy.
+- Address `10.10.10.21`, hostname `managed01.rangelab.internal`.
+- DNS `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from
+  the start.
 
-Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.2 depends on.
+After the install reboots, clear **Connect At Power On** in Edit Settings → CD/DVD drive 1, if it
+is still checked. The installer ejects the ISO as it reboots, which clears **Connected** on its own.
 
-## 6.4 Bring managed01 under Ansible
+Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.4 depends on.
+
+## 6.3 Bring managed01 under Ansible
 
 Add it as a node per 3.4. Its inventory entry already exists in `main`.
 
+## 6.4 Startup and shutdown order
+
+In the vSphere Client: **Hosts and Clusters** → `rangelab` → `esxi01.rangelab.internal` →
+**Configure** → **Virtual Machines** → **VM Startup/Shutdown** → **Edit**:
+
+| Setting | Value |
+| ------- | ----- |
+| Automatically start and stop the virtual machines with the system | Checked |
+| Default startup delay / shutdown delay | 120 s / 120 s |
+| Continue if VMware Tools is started | Checked |
+| Shutdown action | Guest shutdown |
+
+In **Manual Startup**, select both VMs, then **Move To** → **Automatic Ordered**.
+
+In **Automatic Ordered**:
+
+| Order | VM        | Startup | VMware Tools   | Shutdown delay |
+| ----- | --------- | ------- | -------------- | -------------- |
+| 1     | vcenter01 | Enabled | System default | 600 s          |
+| 2     | managed01 | Enabled | System default | 120 s          |
+
+If out of order, open the tri-dot menu on a row and choose **Move Up** or **Move Down**.
+Then check vcenter01's row, click **Edit** above the table, and set its shutdown delay to 600 s;
+managed01 keeps the default.
+
+vcenter01 starts first because it takes longest to become usable; DNS and time are already up
+outside esxi01. It gets 600 seconds to shut down, since a guest cut off mid-shutdown is powered off,
+and hard-stopping the appliance's database can corrupt vCenter. Guest shutdown requires VMware
+Tools in each guest.
+
 ## 6.5 Checks
+
+From `~/RangeLab/Ansible` on ansible01:
 
 ```
 echo | openssl s_client -connect esxi01.rangelab.internal:443 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
@@ -675,10 +688,6 @@ ansible all -m ping
 Expected: esxi01's certificate issued by the VMCA root with `DNS:esxi01.rangelab.internal`;
 managed01 `^*` on infra01; `open-vm-tools` installed; `pong` from all three managed nodes.
 
-**Verified 2026-09-18:** esxi01 certificate VMCA-issued with the FQDN SAN; managed01 on Rocky 10.2,
-EFI, `vmxnet3`, synchronised to infra01 (stratum 4), resolving through `10.10.10.2`,
-`open-vm-tools` 13.0.10; all three nodes converged to `changed=0`.
-
 ---
 
 # Stage 7 - Verification
@@ -687,8 +696,9 @@ A cold shutdown and boot of the whole lab, then every earlier stage's checks in 
 
 ## 7.1 Cold shutdown and boot
 
-Shut down in the order in [[Operations]], leave everything off for at least 15 minutes so the
-clocks have drift to correct, then boot in the order given there.
+Shut down in the order in [[Operations]], then boot in the order given there. How long the lab
+stays off does not matter: a powered-off VM's clock is set from its host at power-on, so no drift
+builds up. Only suspending a VM freezes its clock (ADR-0004).
 
 ## 7.2 Checks
 
@@ -716,7 +726,3 @@ python Scripts\vcenter_inventory.py
 Expected: every host reachable, with esxi01 checked on 443 since its SSH does not survive a reboot;
 `changed=0` on every managed node; every chrony node `^*` on its source; `Time Synchronized: true`
 on esxi01; vcenter01 and managed01 listed as `POWERED_ON`.
-
-**Verified 2026-09-18:** all checks pass with no manual intervention. Names resolved at boot, so
-dnsmasq came up under `bind-dynamic`; clocks were corrected after the time powered off; autostart
-brought up both nested VMs; the vCenter API answered.

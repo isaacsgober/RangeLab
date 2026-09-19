@@ -13,7 +13,7 @@ lab.
 
 ## Status
 
-**Running** - installed 2026-09-17. Services are configured in Stage 3, not by hand.
+**Running** - installed 2026-09-19. Services are configured in Stage 3, not by hand.
 
 ---
 
@@ -64,7 +64,7 @@ node does.
 
 ## Management
 
-SSH: `labadmin@10.10.10.2`
+SSH: `labadmin@infra01.rangelab.internal`
 
 ---
 
@@ -97,10 +97,11 @@ inventory; see [[Build-Sequence]] Stage 3.
 
 ## Notes
 
-2026-09-17:
-	Installed from the Rocky 10.2 DVD with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator, password in `creds.md`.
+2026-09-19:
+	Installed from the Rocky 10.2 boot ISO with the [[Build-Sequence]] Stage 2 settings. Root account locked; `labadmin` is the administrator.
+	Rebuilt by following [[Build-Sequence]] from `main`; the first instance, installed 2026-09-17 from the DVD, was deleted.
 	`rtc.diffFromUTC = "0"` in the `.vmx`, and the installer's time zone set to UTC.
-	The DVD is installation media only. This node uses the normal Rocky repositories over the internet through [[vyos01]], which is what ADR-0003's local ISO repository existed to work around.
+	The boot ISO holds only the installer. Packages come from the normal Rocky repositories over the internet through [[vyos01]], during the install and after, which is what ADR-0003's local ISO repository existed to work around.
 	Firmware is BIOS: Workstation offers no UEFI for this guest profile. Rocky's automatic partitioning therefore creates a `biosboot` partition rather than an EFI system partition, so there is no `/boot/efi`.
 
 	The DNS servers entered at install remain in this node's NetworkManager connection profile, but are inert: the `dns` role sets `dns=none`, so NetworkManager no longer writes `/etc/resolv.conf`. Removing that drop-in would let the installer's values return.
@@ -109,19 +110,8 @@ inventory; see [[Build-Sequence]] Stage 3.
 
 ## Verification
 
-First boot, 2026-09-17:
-
-| Check | Result |
-| ----- | ------ |
-| `ip -br addr`, `ip route` | `10.10.10.2/24`, default via `10.10.10.3` |
-| `ping 10.10.10.3` | Replies |
-| `sudo dnf makecache` | Metadata cache created in 12 s |
-| `timedatectl` | `Etc/UTC (UTC, +0000)`, **RTC in local TZ: no** |
-| `getenforce` | `Enforcing` |
-
-`timedatectl` also reported `System clock synchronized: no` and `NTP service: n/a`, which is
-expected - a Minimal install has no time service, and chrony arrives with the `ntp_server` role in
-Stage 3. The RTC read about a minute behind the system clock at that point.
+Passed the [[Build-Sequence]] Stage 7 checks on 2026-09-19, after a cold shutdown and boot of the
+whole lab.
 
 ---
 
