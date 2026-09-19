@@ -608,7 +608,11 @@ options build an image from a software depot, and none is configured in this lab
 
 ## 6.2 Create managed01
 
-New Virtual Machine on esxi01:
+Upload the boot ISO first; the New Virtual Machine wizard can only attach an ISO that is already on
+a datastore. In the vSphere Client: **Storage** → `datastore01-01` → **Files** → **Upload Files**,
+then choose `Rocky-10.2-x86_64-boot.iso`.
+
+Then, New Virtual Machine on esxi01:
 
 | Setting | Value |
 | ------- | ----- |
