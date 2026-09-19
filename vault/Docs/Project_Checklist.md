@@ -91,7 +91,7 @@ See [[Phase 0 Screenshots]].
 - [x] Add a `Troubleshooting.md` covering at least DNS, SSH, and one Ansible issue.
 - [x] Add a `Lessons-Learned.md` describing what worked, what failed, and what would be improved next.
 - [ ] Verify all commands and playbooks from a clean repository clone.
-- [ ] Check the repository again for secrets, personal data, internal domain names, and unsafe screenshots.
+- [x] Check the repository again for secrets, personal data, internal domain names, and unsafe screenshots.
 - [ ] Ask another person to follow the README and identify unclear steps.
 - [ ] Tag a first completed release, such as `v1.0`.
 

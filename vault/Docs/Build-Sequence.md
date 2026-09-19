@@ -8,6 +8,8 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 **Conventions in this document**
 
 - Commands are shown exactly as typed. Output shown is the real output, trimmed.
+- Commands use `~`, `$HOME`, or `$env:USERPROFILE` rather than any one account's paths, so they
+  run unchanged for anyone. Recorded output uses `<user>` in place of a username.
 - Every stage ends with checks. No stage begins until the previous stage's checks pass.
 - Values (addresses, names, sizes) come from [[IP Index]] and [[Naming Convention]].
 - Written for a rebuild from `main`: every file referenced already exists in the repository with
