@@ -21,7 +21,7 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 | ---- | ----- |
 | Host | Windows 11 with VMware Workstation 26 |
 | Networks | VMnet10 host-only `10.10.10.0/24` (host adapter `10.10.10.1`, no DHCP); VMnet8 NAT `192.168.132.0/24` (NAT gateway `192.168.132.2`, DHCP `.128–.254`) |
-| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 DVD, VMware ESXi 9.1, VCSA 9.1 |
+| Installer images | VyOS Stream 2026.02, Rocky Linux 10.2 boot ISO, VMware ESXi 9.1, VCSA 9.1 |
 | Repository | This repo, cloned on the host |
 | Firmware | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it |
 | Host DNS | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on |
@@ -231,7 +231,8 @@ hash.
 
 # Stage 2 - infra01 and ansible01
 
-Two Rocky Linux VMs, installed from the DVD. infra01 will serve DNS and NTP to the lab; ansible01
+Two Rocky Linux VMs, installed from the boot ISO, which pulls packages from the Rocky mirrors
+through vyos01. infra01 will serve DNS and NTP to the lab; ansible01
 is the control node that configures everything from here on. Neither is configured by hand beyond
 what the installer asks: Stage 3 does the rest with Ansible.
 
@@ -249,7 +250,7 @@ Install infra01 first, then ansible01. Both are Workstation guests, so neither d
 | Memory | 2048 MB | 4096 MB |
 | Disk | 20 GB, single file | 30 GB, single file |
 | Network adapter | Custom → **VMnet10** | Custom → **VMnet10** |
-| CD/DVD | `Rocky-10.2-x86_64-dvd1.iso`, connected at power on | same |
+| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, connected at power on | same |
 
 With each VM powered off, add to its `.vmx`:
 
@@ -259,7 +260,8 @@ rtc.diffFromUTC = "0"
 
 ## 2.2 Rocky installer settings
 
-Identical for both machines except the highlighted rows.
+Identical for both machines except the highlighted rows. Configure Network & Host Name first;
+Installation Source reaches the mirrors only once the network is up.
 
 | Installer screen                | Setting                                                                             |
 | ------------------------------- | ----------------------------------------------------------------------------------- |
@@ -273,6 +275,7 @@ Identical for both machines except the highlighted rows.
 | … → DNS servers                 | `10.10.10.3`                                                                        |
 | … → Search domains              | `rangelab.internal`                                                                 |
 | … → General                     | "Connect automatically with priority" checked                                       |
+| Installation Source             | Closest mirror, no proxy                                                            |
 | Root Account                    | **Lock root account**                                                               |
 | User Creation                   | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
 
@@ -651,15 +654,11 @@ New Virtual Machine on esxi01:
 | Firmware | EFI (the profile's default) |
 | CD/DVD | `Rocky-10.2-x86_64-boot.iso`, uploaded to `datastore01-01` |
 
-The boot ISO holds only the installer and pulls packages from the Rocky mirrors, which works for
-any node built after Stage 3: a 1 GB upload instead of the 10 GB DVD.
-
 Install with the Stage 2.2 settings, except:
 
-- **Network first.** Address `10.10.10.21`, hostname `managed01.rangelab.internal`, DNS
-  `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from the
-  start.
-- **Installation Source**: closest mirror, no proxy.
+- Address `10.10.10.21`, hostname `managed01.rangelab.internal`.
+- DNS `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from
+  the start.
 
 Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.2 depends on.
 
