@@ -25,6 +25,7 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 | Repository       | This repo, cloned on the host                                                                                                                         |
 | Firmware         | BIOS on the Workstation guests; UEFI on esxi01 and everything nested inside it                                                                        |
 | Host DNS         | VMnet10 adapter: DNS server `10.10.10.2`, no gateway. Lets the host resolve lab FQDNs from Stage 3 on                                                 |
+| Host tools       | Python 3.10+ and `requests` (`pip install requests`), for Stage 7's `vcenter_inventory.py`                                                            |
 
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
