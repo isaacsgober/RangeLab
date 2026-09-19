@@ -99,8 +99,7 @@ for the `vyos` user, and the default boot console. When it finishes:
 poweroff
 ```
 
-In VM Settings → CD/DVD, clear **Connect at power on** and disconnect the ISO, then power the VM
-back on.
+In VM Settings → CD/DVD, clear **Connect at power on**, then power the VM back on.
 
 ## 1.3 Check which interface is which
 
@@ -285,7 +284,8 @@ Installation Source reaches the mirrors only once the network is up.
 | Root Account                    | **Lock root account**                                                               |
 | User Creation                   | `labadmin`, "Make this user administrator" checked, password recorded in `creds.md` |
 
-Begin installation, then reboot and disconnect the ISO.
+Begin installation, then reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect
+at power on**.
 
 DNS points at vyos01 until Stage 3 moves every node to infra01.
 
