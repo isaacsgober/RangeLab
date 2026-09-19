@@ -695,8 +695,9 @@ A cold shutdown and boot of the whole lab, then every earlier stage's checks in 
 
 ## 7.1 Cold shutdown and boot
 
-Shut down in the order in [[Operations]], leave everything off for at least 15 minutes so the
-clocks have drift to correct, then boot in the order given there.
+Shut down in the order in [[Operations]], then boot in the order given there. How long the lab
+stays off does not matter: a powered-off VM's clock is set from its host at power-on, so no drift
+builds up. Only suspending a VM freezes its clock (ADR-0004).
 
 ## 7.2 Checks
 
