@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lab services node: DNS and NTP for [[VMnet10]]. Replaces [[dnsmasqhost]], which ran the same role
+Lab services node: DNS and NTP for [[VMnet10]]. Replaces dnsmasqhost, which ran the same role
 in the pre-rebuild lab without being managed by Ansible.
 
 It runs in Workstation rather than on [[esxi01]], so the lab's name resolution and clock do not

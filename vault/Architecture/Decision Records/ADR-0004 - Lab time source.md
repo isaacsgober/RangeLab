@@ -26,7 +26,7 @@ A clock sweep on 2026-09-15 found that promise had not held. The lab had split i
 
 | Group | Nodes | Offset from Precision7730 |
 |---|---|---|
-| Tracked the Windows host | [[Precision7730]], [[esxi01]], [[dnsmasqhost]] | within 0.2 s |
+| Tracked the Windows host | [[Precision7730]], [[esxi01]], dnsmasqhost | within 0.2 s |
 | Tracked ansible01 | [[ansible01]], [[managed01]], [[vcenter01]] | −3 h 49 m 29 s |
 
 - **ansible01 lost the time while esxi01 was suspended.** Its clock was correct at boot
@@ -62,7 +62,7 @@ tokens today, and it would break Kerberos at the Active Directory stage.
 | Node | Client | Syncs from | Notes |
 |---|---|---|---|
 | [[ansible01]] | chrony | `10.10.10.1` | Still serves NTP to VMnet10. `local stratum 10` removed. |
-| [[dnsmasqhost]] | chrony | `10.10.10.1` | chronyd enabled for the first time. |
+| dnsmasqhost | chrony | `10.10.10.1` | chronyd enabled for the first time. |
 | [[managed01]] | chrony | [[ansible01]] | |
 | [[vcenter01]] | ntpd (VAMI timesync: NTP) | [[ansible01]] | The appliance's `ntp.conf` already has `tinker panic 0`. |
 | [[esxi01]] | ntpd | [[ansible01]] | |
@@ -126,7 +126,7 @@ Disadvantages
 - [[Precision7730]]
 - [[ansible01]]
 - [[managed01]]
-- [[dnsmasqhost]]
+- dnsmasqhost
 - [[esxi01]]
 - [[vcenter01]]
 - [[Known-Issues]]

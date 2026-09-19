@@ -9,7 +9,7 @@ Accepted 2026-09-17.
 ## Context
 
 In the pre-rebuild lab, [[ansible01]] ran as a guest of [[esxi01]] while serving two roles that
-everything else depended on: Ansible control node and lab NTP server. [[dnsmasqhost]] served DNS
+everything else depended on: Ansible control node and lab NTP server. dnsmasqhost served DNS
 from VMware Workstation, beside esxi01 rather than inside it. The split was accidental - each node
 was placed wherever was convenient at the time it was built.
 
