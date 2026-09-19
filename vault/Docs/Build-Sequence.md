@@ -215,8 +215,6 @@ milliseconds.
 
 The `dig` tests the forwarder clients use; the pings only prove the router resolves for itself.
 
-**Verified 2026-09-17:** all checks pass; `dig @10.10.10.3` returns NOERROR in 32 ms.
-
 From the Windows host, confirm management access:
 
 ```
@@ -344,9 +342,6 @@ ansible-galaxy collection list | grep posix
 Expected: `/opt/ansible/bin/ansible-playbook`; **the same ansible-core version from `ansible` and
 `ansible-lint`**; `ansible.posix` listed.
 
-**Verified 2026-09-17:** ansible-core 2.21.4, ansible-lint 26.8.0 on the same core,
-ansible.posix 2.2.2.
-
 ---
 
 # Stage 3 - Ansible: bootstrap and converge
@@ -416,12 +411,6 @@ Expected: `pong` from infra01 and ansible01; the second run reports `changed=0` 
 every node `^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record,
 and external names resolving; the AAAA query returning `NOERROR` with an empty answer, not
 `NXDOMAIN`.
-
-**Verified 2026-09-18:** both nodes at `changed=0`; infra01 at stratum 3, ansible01 at 4; all names
-resolving; AAAA returning NODATA.
-
-`getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
-`nss-myhostname`, not DNS; see [[Troubleshooting]] (2026-09-18).
 
 ## 3.4 Adding a node
 
