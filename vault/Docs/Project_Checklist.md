@@ -90,7 +90,7 @@ See [[Phase 0 Screenshots]].
 - [x] Write a concise build sequence that another person could follow.
 - [x] Add a `Troubleshooting.md` covering at least DNS, SSH, and one Ansible issue.
 - [x] Add a `Lessons-Learned.md` describing what worked, what failed, and what would be improved next.
-- [ ] Verify all commands and playbooks from a clean repository clone.
+- [x] Verify all commands and playbooks from a clean repository clone. (second build, 2026-09-19)
 - [x] Check the repository again for secrets, personal data, internal domain names, and unsafe screenshots.
 - [ ] Ask another person to follow the README and identify unclear steps.
 - [ ] Tag a first completed release, such as `v1.0`.
