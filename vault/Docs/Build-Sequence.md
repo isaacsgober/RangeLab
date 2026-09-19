@@ -623,13 +623,16 @@ Then, New Virtual Machine on esxi01:
 | Disk | 30 GB, PVSCSI |
 | Network | VM Network, `vmxnet3` |
 | Firmware | EFI (the profile's default) |
-| CD/DVD | `Rocky-10.2-x86_64-boot.iso`, uploaded to `datastore01-01` |
+| CD/DVD | Datastore ISO File, `Rocky-10.2-x86_64-boot.iso` on `datastore01-01`; **Connect At Power On** checked |
 
 Install with the Stage 2.2 settings, except:
 
 - Address `10.10.10.21`, hostname `managed01.rangelab.internal`.
 - DNS `10.10.10.2`. infra01 exists by now, so the node points at its permanent DNS server from
   the start.
+
+After the install reboots, clear **Connect At Power On** in Edit Settings → CD/DVD drive 1, if it
+is still checked. The installer ejects the ISO as it reboots, which clears **Connected** on its own.
 
 Minimal Install includes `open-vm-tools` on VMware, which the guest shutdown in 6.4 depends on.
 
