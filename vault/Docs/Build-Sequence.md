@@ -29,12 +29,16 @@ recorded in `vault/Attachments/as-built-2026-09-15/` and tagged `pre-rebuild`.
 Workstation greys out UEFI for these Linux guest profiles, so the Workstation guests are BIOS.
 esxi01's ESXi profile forces EFI on its own; nothing is selected there either.
 
-When rebuilding over an earlier lab, clear the host's stale SSH host keys for every reused address
-first, or SSH refuses the new machines with "REMOTE HOST IDENTIFICATION HAS CHANGED":
+Rebuilding over an earlier lab on the same host leaves its SSH host keys behind, and SSH refuses
+the new nodes with "REMOTE HOST IDENTIFICATION HAS CHANGED". Clear them in PowerShell:
 
 ```
-ssh-keygen -R <address>
+Get-Content "$env:USERPROFILE\.ssh\known_hosts" | ForEach-Object { ($_ -split ' ')[0] } | Sort-Object -Unique | Where-Object { $_ -match '^10\.10\.10\.|\.rangelab\.' } | ForEach-Object { ssh-keygen -R $_ }
 ```
+
+The pattern matches the earlier lab's network, `^10\.10\.10\.` (its address without the host
+octet), and a unique part of its domain, `\.rangelab\.`. Replace either if that lab used different
+values; dots are escaped with `\`.
 
 ---
 
