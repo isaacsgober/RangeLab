@@ -687,10 +687,6 @@ ansible all -m ping
 Expected: esxi01's certificate issued by the VMCA root with `DNS:esxi01.rangelab.internal`;
 managed01 `^*` on infra01; `open-vm-tools` installed; `pong` from all three managed nodes.
 
-**Verified 2026-09-18:** esxi01 certificate VMCA-issued with the FQDN SAN; managed01 on Rocky 10.2,
-EFI, `vmxnet3`, synchronised to infra01 (stratum 4), resolving through `10.10.10.2`,
-`open-vm-tools` 13.0.10; all three nodes converged to `changed=0`.
-
 ---
 
 # Stage 7 - Verification
