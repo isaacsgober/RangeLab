@@ -11,13 +11,13 @@
 		{"id":"a7b4f6d5cddd5b31","type":"file","file":"vault/Devices/managed01.md","x":250,"y":180,"width":194,"height":50}
 	],
 	"edges":[
-		{"id":"e000000000a11ce0","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"c4e96b0f575af8a9","toSide":"top"},
-		{"id":"e000000000a11ce1","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"9a8b7c6d5e4f3021","toSide":"top"},
-		{"id":"e000000000a11ce2","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"1f2e3d4c5b6a7980","toSide":"top"},
-		{"id":"e000000000a11ce3","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"6189bbaa4906ee14","toSide":"top"},
-		{"id":"e000000000a11ce4","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"fd18683ffbf709a4","toSide":"top"},
-		{"id":"e000000000a11ce5","fromNode":"b3f1c2d4e5a60718","fromSide":"bottom","toNode":"9a8b7c6d5e4f3021","toSide":"top"},
-		{"id":"e000000000a11ce6","fromNode":"fd18683ffbf709a4","fromSide":"bottom","toNode":"6064ad7a64334073","toSide":"top"},
-		{"id":"e000000000a11ce7","fromNode":"fd18683ffbf709a4","fromSide":"bottom","toNode":"a7b4f6d5cddd5b31","toSide":"top"}
+		{"id":"e000000000a11ce0","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"c4e96b0f575af8a9","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce1","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"9a8b7c6d5e4f3021","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce2","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"1f2e3d4c5b6a7980","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce3","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"6189bbaa4906ee14","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce4","fromNode":"251e0cea6ff5cfc7","fromSide":"bottom","toNode":"fd18683ffbf709a4","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce5","fromNode":"b3f1c2d4e5a60718","fromSide":"bottom","toNode":"9a8b7c6d5e4f3021","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce6","fromNode":"fd18683ffbf709a4","fromSide":"bottom","toNode":"6064ad7a64334073","toSide":"top","fromEnd":"arrow","toEnd":"arrow"},
+		{"id":"e000000000a11ce7","fromNode":"fd18683ffbf709a4","fromSide":"bottom","toNode":"a7b4f6d5cddd5b31","toSide":"top","fromEnd":"arrow","toEnd":"arrow"}
 	]
 }
