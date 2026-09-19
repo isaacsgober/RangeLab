@@ -353,6 +353,10 @@ The inventory names every node by FQDN and keeps its address in `lab_address` (A
 `dns_extra_records` lists the nodes Ansible does not manage, so their records exist from the first
 converge, before those nodes are built.
 
+The inventory also lists managed01, which Stage 6 builds. Until then, every Ansible run reports it
+`UNREACHABLE` with "No route to host". Ansible drops an unreachable host from the run and carries on
+with the others, so this result is expected.
+
 ## 3.1 Bootstrap
 
 No lab name resolves yet, so the first two runs connect by address. Accept each host key first;
@@ -366,7 +370,7 @@ ansible-playbook bootstrap.yml -e 'ansible_user=labadmin ansible_host={{ lab_add
 
 Creates the `ansible` service account, authorises ansible01's key, and installs the sudoers
 drop-in (ADR-0002). Use `-e`, not `-u`: command-line options lose to inventory variables, extra
-vars win. Expect `changed=3` per node.
+vars win. Expect `changed=3` on infra01 and ansible01.
 
 ## 3.2 First converge
 
@@ -402,9 +406,10 @@ ansible all -m command -a 'dig +short rockylinux.org'
 ansible all -m command -a 'dig infra01.rangelab.internal AAAA'
 ```
 
-Expected: `pong` from both nodes; the second run reports `changed=0` with no handlers; every node
-`^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record, and external
-names resolving; the AAAA query returning `NOERROR` with an empty answer, not `NXDOMAIN`.
+Expected: `pong` from infra01 and ansible01; the second run reports `changed=0` with no handlers;
+every node `^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record,
+and external names resolving; the AAAA query returning `NOERROR` with an empty answer, not
+`NXDOMAIN`.
 
 **Verified 2026-09-18:** both nodes at `changed=0`; infra01 at stratum 3, ansible01 at 4; all names
 resolving; AAAA returning NODATA.
