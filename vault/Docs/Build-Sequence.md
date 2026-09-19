@@ -468,7 +468,7 @@ rtc.diffFromUTC = "0"
 ## 4.2 Install
 
 Boot from the ISO, install to the 128 GB disk, set the root password (recorded in `creds.md`), and
-reboot. Clear **Connect at power on** for the CD/DVD afterwards.
+reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect at power on**.
 
 The 128 GB boot disk produces **no local datastore**. ESXi 9 claims about 138 GB for system media
 and only creates a VMFS datastore on the boot disk above roughly 142 GB. That is expected; disk 2
