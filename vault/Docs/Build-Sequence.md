@@ -270,17 +270,17 @@ Installation Source reaches the mirrors only once the network is up.
 | ------------------------------- | ----------------------------------------------------------------------------------- |
 | Language / Keyboard             | English (US)                                                                        |
 | Time & Date                     | Region/City: **Etc / Coordinated Universal Time**                                   |
-| Software Selection              | **Minimal Install**                                                                 |
-| Installation Destination        | The virtual disk, automatic partitioning                                            |
 | Network & Host Name → Host Name | **`infra01.rangelab.internal`** / **`ansible01.rangelab.internal`**                 |
 | … → Configure → IPv4 Settings   | Method **Manual**                                                                   |
 | … → Address                     | **`10.10.10.2`** / **`10.10.10.20`**, netmask `255.255.255.0`, gateway `10.10.10.3` |
 | … → DNS servers                 | `10.10.10.3`                                                                        |
 | … → Search domains              | `rangelab.internal`                                                                 |
 | … → General                     | "Connect automatically with priority" checked                                       |
+| Installation Destination        | The virtual disk, automatic partitioning                                            |
 | Installation Source             | Closest mirror, no proxy                                                            |
-| Root Account                    | **Lock root account**                                                               |
 | User Creation                   | `labadmin`, "Make this user administrator" checked                                  |
+| Root Account                    | **Lock root account**                                                               |
+| Software Selection              | **Minimal Install**                                                                 |
 
 Begin installation, then reboot. In VM Settings → CD/DVD, clear both **Connected** and **Connect
 at power on**.
