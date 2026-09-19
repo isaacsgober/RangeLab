@@ -645,7 +645,8 @@ Add it as a node per 3.4. Its inventory entry already exists in `main`.
 
 ## 6.4 Startup and shutdown order
 
-esxi01 → Configure → **VM Startup/Shutdown** → Edit:
+In the vSphere Client: **Hosts and Clusters** → `rangelab` → `esxi01.rangelab.internal` →
+**Configure** → **Virtual Machines** → **VM Startup/Shutdown** → **Edit**:
 
 | Setting | Value |
 | ------- | ----- |
@@ -654,10 +655,18 @@ esxi01 → Configure → **VM Startup/Shutdown** → Edit:
 | Continue if VMware Tools is started | Checked |
 | Shutdown action | Guest shutdown |
 
-| Order | VM | Startup | VMware Tools | Shutdown delay |
-| ----- | -- | ------- | ------------ | -------------- |
-| 1 | vcenter01 | Enabled | System default | 600 s |
-| 2 | managed01 | Enabled | System default | 120 s |
+In **Manual Startup**, select both VMs, then **Move To** → **Automatic Ordered**.
+
+In **Automatic Ordered**:
+
+| Order | VM        | Startup | VMware Tools   | Shutdown delay |
+| ----- | --------- | ------- | -------------- | -------------- |
+| 1     | vcenter01 | Enabled | System default | 600 s          |
+| 2     | managed01 | Enabled | System default | 120 s          |
+
+If out of order, open the tri-dot menu on a row and choose **Move Up** or **Move Down**.
+Then check vcenter01's row, click **Edit** above the table, and set its shutdown delay to 600 s;
+managed01 keeps the default.
 
 vcenter01 starts first because it takes longest to become usable; DNS and time are already up
 outside esxi01. It gets 600 seconds to shut down, since a guest cut off mid-shutdown is powered off,
