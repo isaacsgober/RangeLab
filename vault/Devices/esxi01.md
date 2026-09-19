@@ -61,7 +61,8 @@ Ansible-managed node.
 ## Management
 
 Host Client: `https://esxi01.rangelab.internal`
-SSH: `root@esxi01.rangelab.internal` (enabled in the DCUI)
+SSH: `root@esxi01.rangelab.internal`, on demand. Enabled in the DCUI or vSphere Client when
+needed; it does not survive a reboot, which is ESXi's default and is kept deliberately.
 
 ---
 

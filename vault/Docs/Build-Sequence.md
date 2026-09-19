@@ -393,7 +393,7 @@ Expected: `pong` from both nodes; the second run reports `changed=0` with no han
 `^*` on its time source, with ansible01 listed as an infra01 client; lab, extra-record, and external
 names resolving; the AAAA query returning `NOERROR` with an empty answer, not `NXDOMAIN`.
 
-**Verified 2026-09-18:** both nodes at `changed=0`; ansible01 at stratum 3 from infra01; all names
+**Verified 2026-09-18:** both nodes at `changed=0`; infra01 at stratum 3, ansible01 at 4; all names
 resolving; AAAA returning NODATA.
 
 `getent hosts` on infra01 for its own name returns a link-local IPv6 address. That is
@@ -475,7 +475,8 @@ becomes the datastore in 4.4.
 The DNS server stays an address; everything else refers to hosts by name (ADR-0008). Apply and
 restart the management network when prompted.
 
-**Troubleshooting Options → Enable SSH.** NTP in 4.4 is set over SSH.
+**Troubleshooting Options → Enable SSH.** NTP in 4.4 is set over SSH. SSH enabled here does not
+survive a reboot; it stays on demand, ESXi's default, and is re-enabled when needed.
 
 **Test Management Network**, adding `1.1.1.1` as an extra address to ping. It pings the gateway,
 the DNS server, and the extra address, and resolves the host's own name, which infra01 has served
@@ -673,5 +674,47 @@ Expected: esxi01's certificate issued by the VMCA root with `DNS:esxi01.rangelab
 managed01 `^*` on infra01; `open-vm-tools` installed; `pong` from all three managed nodes.
 
 **Verified 2026-09-18:** esxi01 certificate VMCA-issued with the FQDN SAN; managed01 on Rocky 10.2,
-EFI, `vmxnet3`, synchronised to infra01 at stratum 3, resolving through `10.10.10.2`,
+EFI, `vmxnet3`, synchronised to infra01 (stratum 4), resolving through `10.10.10.2`,
 `open-vm-tools` 13.0.10; all three nodes converged to `changed=0`.
+
+---
+
+# Stage 7 - Verification
+
+A cold shutdown and boot of the whole lab, then every earlier stage's checks in one pass.
+
+## 7.1 Cold shutdown and boot
+
+Shut down in the order in [[Operations]], leave everything off for at least 15 minutes so the
+clocks have drift to correct, then boot in the order given there.
+
+## 7.2 Checks
+
+From ansible01, in `~/RangeLab/Ansible`:
+
+```
+python ../Scripts/healthcheck.py vyos01.rangelab.internal infra01.rangelab.internal ansible01.rangelab.internal vcenter01.rangelab.internal managed01.rangelab.internal
+python ../Scripts/healthcheck.py -p 443 esxi01.rangelab.internal
+ansible-playbook site.yml
+ansible all -m command -a 'chronyc sources'
+```
+
+On esxi01, with SSH enabled for the check:
+
+```
+esxcli system ntp get
+```
+
+From the Windows host:
+
+```
+python Scripts\vcenter_inventory.py
+```
+
+Expected: every host reachable, with esxi01 checked on 443 since its SSH does not survive a reboot;
+`changed=0` on every managed node; every chrony node `^*` on its source; `Time Synchronized: true`
+on esxi01; vcenter01 and managed01 listed as `POWERED_ON`.
+
+**Verified 2026-09-18:** all checks pass with no manual intervention. Names resolved at boot, so
+dnsmasq came up under `bind-dynamic`; clocks were corrected after the time powered off; autostart
+brought up both nested VMs; the vCenter API answered.
