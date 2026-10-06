@@ -13,9 +13,9 @@ domain-needed
 bogus-priv
 no-hosts
 
-{% for host in groups['all'] %}
+{% for host in groups['all'] | sort %}
 host-record={{ host }},{{ hostvars[host].lab_address }}
 {% endfor %}
-{% for name, address in dns_extra_records.items() %}
+{% for name, address in dns_extra_records | dictsort %}
 host-record={{ name }},{{ address }}
 {% endfor %}
