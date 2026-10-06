@@ -1,6 +1,6 @@
 ---
 - name: Bootstrap the ansible service account
-  hosts: all
+  hosts: rocky
   become: true
   tasks:
 

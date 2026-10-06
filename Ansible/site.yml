@@ -1,6 +1,6 @@
 ---
-- name: Configure all nodes
-  hosts: all
+- name: Configure all Rocky nodes
+  hosts: rocky
   become: true
   roles:
     - role: common

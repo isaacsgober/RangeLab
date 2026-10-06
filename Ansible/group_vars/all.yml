@@ -15,6 +15,5 @@ lab_network: 10.10.10.0/24
 lab_domain: rangelab.internal
 dns_upstream: 10.10.10.3
 dns_extra_records:
-  vyos01.rangelab.internal: 10.10.10.3
   esxi01.rangelab.internal: 10.10.10.10
   vcenter01.rangelab.internal: 10.10.10.15
